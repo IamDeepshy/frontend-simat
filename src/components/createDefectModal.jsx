@@ -103,7 +103,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
     onClose();
   };
 
-  if (!isOpen) return null;
+ if (!isOpen) return null;
 
   return (
     <>

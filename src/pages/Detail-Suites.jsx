@@ -1,10 +1,15 @@
 import React from 'react';
 import { useLocation, Link } from "react-router-dom";
-import CreateDefectModal from '../layouts/createDefectModal';
+import { useState } from "react";
+import CreateDefectModal from '../components/createDefectModal';
 
 export default function DetailSuites() {
   const location = useLocation();
-  const { suiteId, testCase } = location.state || {};
+  const { testCase } = location.state || {};
+  
+  // MODAL
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
 
   const getStatusBadgeClass = (status) => {
     if (status === 'Passed') return 'bg-green-100 text-green-700';
@@ -51,10 +56,18 @@ export default function DetailSuites() {
                   <img src="/assets/icon/rerun.svg" alt="Rerun icon" className="w-4 h-4" />
                   Rerun Test
                 </button>
-                <button className="px-8 py-2 bg-black text-white rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-8 py-2 bg-black text-white rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2"
+                >
                   <img src="/assets/icon/defect.svg" alt="Defect icon" className="w-4 h-4" />
                   Create Defect
                 </button>
+
+                <CreateDefectModal
+                  isOpen={isModalOpen}
+                  onClose={() => setIsModalOpen(false)}
+                />
               </div>
             </div>
 
