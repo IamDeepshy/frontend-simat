@@ -1,8 +1,50 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 export default function Sidebar() {
+  const navigate = useNavigate();
   const location = useLocation();
+
+  // role user: "qa" | "developer" | null
+  const [role, setRole] = useState(null);
+
+  // Ambil role dari backend
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/auth/me", {
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          // kalau gagal ya sudah, biarkan role tetap null
+          console.error("Gagal ambil data user");
+          return;
+        }
+
+        const data = await res.json();
+        setRole(data.role); // contoh: "qa" atau "developer"
+      } catch (err) {
+        console.error("Error fetch /auth/me", err);
+      }
+    };
+
+    fetchMe();
+  }, []);
+
+  // Logout
+  const handleLogout = async () => {
+    try {
+      await fetch("http://localhost:3000/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
+  };
 
   const menuItems = [
     {
@@ -25,25 +67,35 @@ export default function Sidebar() {
 
   const isActive = (item) => {
     if (item.activeMatch) {
-      return item.activeMatch.some(path => location.pathname.includes(path));
+      return item.activeMatch.some((path) => location.pathname.includes(path));
     }
     return location.pathname === item.path;
   };
+
+  //  Filter menu berdasarkan role
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (role === "developer" && item.path === "/") {
+      // developer TIDAK boleh melihat Dashboard
+      return false;
+    }
+    // qa & role lain (atau role belum kebaca) boleh lihat semua
+    return true;
+  });
 
   return (
     <div className="fixed top-0 left-0 w-[260px] h-[95vh] m-3 bg-[#1a1a1a] text-white rounded-[18px] flex flex-col justify-between p-5">
       {/* Logo Section */}
       <div className="flex flex-col">
-        <img 
-          src="/assets/logo/sidebar.svg" 
-          alt="SIMAT Logo" 
+        <img
+          src="/assets/logo/sidebar.svg"
+          alt="SIMAT Logo"
           className="w-[150px] mx-auto mb-6"
         />
 
         {/* Menu Items */}
         <nav className="flex-grow">
           <ul className="space-y-2">
-            {menuItems.map((item) => (
+            {visibleMenuItems.map((item) => (
               <li key={item.path} className="relative">
                 <Link
                   to={item.path}
@@ -59,12 +111,14 @@ export default function Sidebar() {
                   {isActive(item) && (
                     <div className="absolute left-[-20px] top-0 bottom-0 w-[10px] bg-white rounded-r-lg" />
                   )}
-                  
-                  <img 
-                    src={item.icon} 
+
+                  <img
+                    src={item.icon}
                     alt={`${item.label} icon`}
                     className={`w-6 h-6 transition-all ${
-                      isActive(item) ? "brightness-125" : "brightness-75 grayscale"
+                      isActive(item)
+                        ? "brightness-125"
+                        : "brightness-75 grayscale"
                     }`}
                   />
                   <span>{item.label}</span>
@@ -77,17 +131,17 @@ export default function Sidebar() {
 
       {/* Logout Section */}
       <div className="border-t border-gray-700 pt-4">
-        <Link
-          to="/login"
-          className="flex items-center gap-3 px-4 py-3 text-[#ef4444] hover:bg-[#1f2937] rounded-lg transition-all duration-200 font-semibold"
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 text-[#ef4444] hover:bg-[#1f2937] rounded-lg transition-all duration-200 font-semibold text-left"
         >
-          <img 
-            src="/assets/icon/logout.svg" 
-            alt="Logout icon" 
+          <img
+            src="/assets/icon/logout.svg"
+            alt="Logout icon"
             className="w-6 h-6"
           />
           <span>Logout</span>
-        </Link>
+        </button>
       </div>
     </div>
   );

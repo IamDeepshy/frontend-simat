@@ -81,6 +81,29 @@ export default function TaskManagement() {
 
   const [activeId, setActiveId] = useState(null);
 
+  // 🔹 TAMBAHAN: state role user
+  const [role, setRole] = useState(null);
+
+  // 🔹 TAMBAHAN: ambil role dari backend
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/auth/me", {
+          credentials: "include",
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setRole(data.role); // "qa" atau "developer"
+        }
+      } catch (err) {
+        console.error("Error fetch /auth/me di TaskManagement:", err);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
   // Configure sensors for drag detection
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -386,6 +409,7 @@ export default function TaskManagement() {
 
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Status dropdown selalu tampil */}
         <CustomDropdown
           dropdownKey="status"
           filterType="status"
@@ -403,22 +427,25 @@ export default function TaskManagement() {
           options={statusOptions}
         />
 
-        <CustomDropdown
-          dropdownKey="assignee"
-          filterType="assignee"
-          icon={
-            <svg 
-              className="w-5 h-5 text-gray-400"
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          }
-          value={filters.assignee}
-          options={assigneeOptions}
-        />
+        {/* 🔹 Assignee dropdown HANYA tampil kalau bukan developer */}
+        {role !== "developer" && (
+          <CustomDropdown
+            dropdownKey="assignee"
+            filterType="assignee"
+            icon={
+              <svg 
+                className="w-5 h-5 text-gray-400"
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            }
+            value={filters.assignee}
+            options={assigneeOptions}
+          />
+        )}
 
         <CustomDropdown
           dropdownKey="priority"

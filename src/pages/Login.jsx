@@ -3,13 +3,56 @@ import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const [username, setUsername] = useState("");   // <-- tambah
+  const [password, setPassword] = useState("");   // <-- tambah
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add your login logic here
-    navigate("/");
+
+    try {
+      const res = await fetch("http://localhost:3000/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Login gagal");
+        return;
+      }
+
+      // 🔎 Setelah login sukses, tanya role ke backend
+      const meRes = await fetch("http://localhost:3000/auth/me", {
+        credentials: "include",
+      });
+
+      if (!meRes.ok) {
+        // fallback kalau ada masalah, arahkan ke /login lagi
+        navigate("/login");
+        return;
+      }
+
+      const me = await meRes.json();
+
+      // 🎯 Redirect sesuai role
+      if (me.role === "qa") {
+        navigate("/");
+      } else if (me.role === "developer") {
+        navigate("/suites");
+      } else {
+        // fallback, misal role lain
+        navigate("/suites");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan pada server");
+    }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f9f4f6]">
@@ -50,7 +93,10 @@ export default function Login() {
                   id="username"
                   placeholder="QualityAssurance"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all"
+                  value={username}                            // <-- tambah
+                  onChange={(e) => setUsername(e.target.value)}  // <-- tambah
                 />
+
               </div>
 
               {/* Password Field */}
@@ -67,7 +113,10 @@ export default function Login() {
                     id="password"
                     placeholder="qa123456"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all pr-12"
+                    value={password}                            // <-- tambah
+                    onChange={(e) => setPassword(e.target.value)}  // <-- tambah
                   />
+
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
