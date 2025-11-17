@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) => {
   const [formData, setFormData] = useState({
@@ -10,6 +10,14 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
   });
 
   const [errors, setErrors] = useState({});
+  
+  // State untuk track dropdown mana yang open
+  const [openDropdown, setOpenDropdown] = useState(null); // 'assignee' | 'priority' | 'status' | null
+  
+  // Refs untuk detect click outside
+  const assigneeRef = useRef(null);
+  const priorityRef = useRef(null);
+  const statusRef = useRef(null);
 
   const developers = [
     { id: 'dev1', name: 'Anang Programmer' },
@@ -30,6 +38,59 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
     { value: 'inProgress', label: 'In Progress' },
     { value: 'done', label: 'Done' }
   ];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (assigneeRef.current && !assigneeRef.current.contains(event.target)) {
+        if (openDropdown === 'assignee') setOpenDropdown(null);
+      }
+      if (priorityRef.current && !priorityRef.current.contains(event.target)) {
+        if (openDropdown === 'priority') setOpenDropdown(null);
+      }
+      if (statusRef.current && !statusRef.current.contains(event.target)) {
+        if (openDropdown === 'status') setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openDropdown]);
+
+  // Get display text for selected values
+  const getAssigneeLabel = () => {
+    const dev = developers.find(d => d.id === formData.assignedTo);
+    return dev ? dev.name : 'Select a developer';
+  };
+
+  const getPriorityLabel = () => {
+    const priority = priorities.find(p => p.value === formData.priority);
+    return priority ? priority.label : 'Select priority';
+  };
+
+  const getStatusLabel = () => {
+    const status = statuses.find(s => s.value === formData.status);
+    return status ? status.label : 'Select status';
+  };
+
+  // Handle dropdown selection
+  const handleDropdownSelect = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear error for this field
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+    
+    // Close dropdown
+    setOpenDropdown(null);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -100,22 +161,30 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
       additionalNotes: ''
     });
     setErrors({});
+    setOpenDropdown(null); // Close any open dropdown
     onClose();
   };
 
- if (!isOpen) return null;
+  if (!isOpen) return null;
 
   return (
     <>
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
-        onClick={handleClose}
       />
 
-      {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div 
+          className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        >
+          {/* Hide scrollbar for Chrome, Safari, Opera */}
+          <style>{`
+            .bg-white::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+
           {/* Header */}
           <div className="flex justify-between items-start p-6 border-b border-gray-200">
             <div>
@@ -126,8 +195,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
             </div>
             <button
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
+              className="text-gray-400 hover:text-gray-600 transition-colors">
               {/* Close Icon - SVG */}
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -157,101 +225,147 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
               )}
             </div>
 
-            {/* Assign to Developer */}
+            {/* Assign to Developer - DROPDOWN */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Assign to Developer <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <select
-                  name="assignedTo"
-                  value={formData.assignedTo}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-all ${
+              <div ref={assigneeRef} className="relative">
+                {/* Dropdown Button */}
+                <button
+                  type="button"
+                  onClick={() => setOpenDropdown(openDropdown === 'assignee' ? null : 'assignee')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-left flex items-center justify-between ${
                     errors.assignedTo ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  } ${!formData.assignedTo ? 'text-gray-400' : 'text-gray-900'}`}
                 >
-                  <option value="">Select a developer</option>
-                  {developers.map(dev => (
-                    <option key={dev.id} value={dev.id}>{dev.name}</option>
-                  ))}
-                </select>
-                {/* Chevron Down Icon */}
-                <svg 
-                  className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                  <span>{getAssigneeLabel()}</span>
+                  {/* Chevron Icon */}
+                  <svg 
+                    className={`w-4 h-4 text-gray-400 transition-transform ${openDropdown === 'assignee' ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {/* Dropdown Options */}
+                {openDropdown === 'assignee' && (
+                  <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    {developers.map((dev, index) => (
+                      <button
+                        key={dev.id}
+                        type="button"
+                        onClick={() => handleDropdownSelect('assignedTo', dev.id)}
+                        className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                          formData.assignedTo === dev.id ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-900'
+                        } ${index === 0 ? 'rounded-t-xl' : ''} ${index === developers.length - 1 ? 'rounded-b-xl' : ''}`}
+                      >
+                        {dev.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               {errors.assignedTo && (
                 <p className="text-red-500 text-xs mt-1">{errors.assignedTo}</p>
               )}
             </div>
 
-            {/* Priority and Status - Two Columns */}
+            {/* Priority and Status - Two Columns - CUSTOM DROPDOWNS */}
             <div className="grid grid-cols-2 gap-4 mb-4">
-              {/* Priority */}
+              {/* Priority - CUSTOM DROPDOWN */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Priority <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <select
-                    name="priority"
-                    value={formData.priority}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-all ${
+                <div ref={priorityRef} className="relative">
+                  {/* Dropdown Button */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenDropdown(openDropdown === 'priority' ? null : 'priority')}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-left flex items-center justify-between ${
                       errors.priority ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    } ${!formData.priority ? 'text-gray-400' : 'text-gray-900'}`}
                   >
-                    <option value="">Select priority</option>
-                    {priorities.map(priority => (
-                      <option key={priority.value} value={priority.value}>{priority.label}</option>
-                    ))}
-                  </select>
-                  {/* Chevron Down Icon */}
-                  <svg 
-                    className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                    <span>{getPriorityLabel()}</span>
+                    {/* Chevron Icon */}
+                    <svg 
+                      className={`w-4 h-4 text-gray-400 transition-transform ${openDropdown === 'priority' ? 'rotate-180' : ''}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Options */}
+                  {openDropdown === 'priority' && (
+                    <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                      {priorities.map((priority, index) => (
+                        <button
+                          key={priority.value}
+                          type="button"
+                          onClick={() => handleDropdownSelect('priority', priority.value)}
+                          className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                            formData.priority === priority.value ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-900'
+                          } ${index === 0 ? 'rounded-t-xl' : ''} ${index === priorities.length - 1 ? 'rounded-b-xl' : ''}`}
+                        >
+                          {priority.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {errors.priority && (
                   <p className="text-red-500 text-xs mt-1">{errors.priority}</p>
                 )}
               </div>
 
-              {/* Status */}
+              {/* Status - CUSTOM DROPDOWN */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Status
                 </label>
-                <div className="relative">
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                <div ref={statusRef} className="relative">
+                  {/* Dropdown Button */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenDropdown(openDropdown === 'status' ? null : 'status')}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-left flex items-center justify-between text-gray-900"
                   >
-                    {statuses.map(status => (
-                      <option key={status.value} value={status.value}>{status.label}</option>
-                    ))}
-                  </select>
-                  {/* Chevron Down Icon */}
-                  <svg 
-                    className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                    <span>{getStatusLabel()}</span>
+                    {/* Chevron Icon */}
+                    <svg 
+                      className={`w-4 h-4 text-gray-400 transition-transform ${openDropdown === 'status' ? 'rotate-180' : ''}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Options */}
+                  {openDropdown === 'status' && (
+                    <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                      {statuses.map((status, index) => (
+                        <button
+                          key={status.value}
+                          type="button"
+                          onClick={() => handleDropdownSelect('status', status.value)}
+                          className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                            formData.status === status.value ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-900'
+                          } ${index === 0 ? 'rounded-t-xl' : ''} ${index === statuses.length - 1 ? 'rounded-b-xl' : ''}`}
+                        >
+                          {status.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

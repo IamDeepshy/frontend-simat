@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -25,6 +25,8 @@ export default function TaskManagement() {
     assignee: 'all',
     priority: 'all'
   });
+
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   const [tasks, setTasks] = useState({
     todo: [
@@ -277,12 +279,102 @@ export default function TaskManagement() {
     );
   };
 
+  // Custom Dropdown Component
+  const CustomDropdown = ({ icon, value, options, dropdownKey, filterType }) => {
+    const dropdownRef = useRef(null);
+    const isOpen = openDropdown === dropdownKey;
+    const selectedOption = options.find(opt => opt.value === value);
+
+    useEffect(() => {
+      if (!isOpen) return;
+
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setOpenDropdown(null);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <div
+          onClick={() => setOpenDropdown(isOpen ? null : dropdownKey)}
+          className="w-full pl-11 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+        >
+          {/* Icon */}
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+            {icon}
+          </div>
+          
+          <span className="text-left flex-1">{selectedOption?.label || 'Select...'}</span>
+          
+          {/* Chevron Down Icon */}
+          <svg 
+            className={`w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 transition-transform pointer-events-none ${isOpen ? 'rotate-180' : ''}`}
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+
+        {/* Dropdown Menu */}
+        {isOpen && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+            {options.map((option) => (
+              <div
+                key={option.value}
+                onClick={() => {
+                  setFilters(prev => ({
+                    ...prev,
+                    [filterType]: option.value
+                  }));
+                  setOpenDropdown(null);
+                }}
+                className={`w-full text-left px-4 py-2.5 hover:bg-gray-100 transition-colors cursor-pointer ${
+                  value === option.value ? 'bg-gray-50 font-medium' : ''
+                }`}
+              >
+                {option.label}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Get the active task for drag overlay
   const activeTask = activeId
     ? Object.values(tasks)
         .flat()
         .find((task) => task.id === activeId)
     : null;
+
+  // Options for dropdowns
+  const statusOptions = [
+    { value: 'all', label: 'All Status' },
+    { value: 'todo', label: 'To Do' },
+    { value: 'inProgress', label: 'In Progress' },
+    { value: 'done', label: 'Done' }
+  ];
+
+  const assigneeOptions = [
+    { value: 'all', label: 'All Assigneed' },
+    { value: 'qa', label: 'QA Team' },
+    { value: 'dev', label: 'Dev Team' }
+  ];
+
+  const priorityOptions = [
+    { value: 'all', label: 'All Priority' },
+    { value: 'high', label: 'High' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'low', label: 'Low' }
+  ];
 
   return (
     <div className="flex-grow ml-[290px] p-8 min-h-screen overflow-y-auto">
@@ -294,95 +386,56 @@ export default function TaskManagement() {
 
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="relative">
-          {/* Filter Icon - SVG */}
-          <svg 
-            className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          <select 
-            className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 appearance-none"
-            value={filters.status}
-            onChange={(e) => setFilters({...filters, status: e.target.value})}
-          >
-            <option value="all">All Status</option>
-            <option value="todo">To Do</option>
-            <option value="inProgress">In Progress</option>
-            <option value="done">Done</option>
-          </select>
-          {/* Chevron Down Icon - SVG */}
-          <svg 
-            className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-        <div className="relative">
-          {/* User Icon - SVG */}
-          <svg 
-            className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-          <select 
-            className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 appearance-none"
-            value={filters.assignee}
-            onChange={(e) => setFilters({...filters, assignee: e.target.value})}
-          >
-            <option value="all">All Assigneed</option>
-            <option value="qa">QA Team</option>
-            <option value="dev">Dev Team</option>
-          </select>
-          {/* Chevron Down Icon - SVG */}
-          <svg 
-            className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-        <div className="relative">
-          {/* Flag Icon - SVG */}
-          <svg 
-            className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-          </svg>
-          <select 
-            className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 appearance-none"
-            value={filters.priority}
-            onChange={(e) => setFilters({...filters, priority: e.target.value})}
-          >
-            <option value="all">All Priority</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-          {/* Chevron Down Icon - SVG */}
-          <svg 
-            className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
+        <CustomDropdown
+          dropdownKey="status"
+          filterType="status"
+          icon={
+            <svg 
+              className="w-5 h-5 text-gray-400"
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          }
+          value={filters.status}
+          options={statusOptions}
+        />
+
+        <CustomDropdown
+          dropdownKey="assignee"
+          filterType="assignee"
+          icon={
+            <svg 
+              className="w-5 h-5 text-gray-400"
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          }
+          value={filters.assignee}
+          options={assigneeOptions}
+        />
+
+        <CustomDropdown
+          dropdownKey="priority"
+          filterType="priority"
+          icon={
+            <svg 
+              className="w-5 h-5 text-gray-400"
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+            </svg>
+          }
+          value={filters.priority}
+          options={priorityOptions}
+        />
       </div>
 
       {/* Drag and Drop Info */}

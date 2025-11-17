@@ -40,7 +40,7 @@ export default function DetailSuites() {
               <div>
                 <h5 className="text-xl font-semibold mb-3">{testCase.name}</h5>
                 <div className="flex items-center gap-4">
-                  <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${getStatusBadgeClass(testCase.status)}`}>
+                  <span className={`px-8 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(testCase.status)}`}>
                     {testCase.status}
                   </span>
                   <span className="text-gray-500 flex items-center gap-1">
@@ -73,12 +73,12 @@ export default function DetailSuites() {
 
             {/* Error Details Section */}
             {testCase.errormsg && (
-              <div className="bg-[#FEF2F2] -mx-6 px-6 py-6 mb-6">
-                <h5 className="text-lg font-semibold text-red-600 mb-4">Error Details</h5>
+              <div className="bg-[#ff3e3e16] -mx-6 px-6 py-6 mb-6">
+                <h5 className="text-lg font-semibold text-red-700 mb-4">Error Details</h5>
                 <div className="bg-white rounded-lg p-4">
-                  <pre className="text-red-600 whitespace-pre-wrap font-mono text-sm">
+                  <p className="text-red-700 whitespace-pre-wrap text-medium">
                     {testCase.errormsg}
-                  </pre>
+                  </p>
                 </div>
               </div>
             )}
