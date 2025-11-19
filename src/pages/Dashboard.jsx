@@ -56,7 +56,7 @@ export default function Dashboard() {
           >
             <div>
               <p className="text-gray-500 text-sm mb-1">{stat.title}</p>
-              <h3 className="text-2xl font-bold">{stat.value}</h3>
+              <h3 className="text-2xl font-semibold">{stat.value}</h3>
             </div>
             <div className={`${stat.bgColor} w-[60px] h-[48px] rounded-xl flex items-center justify-center shadow-sm`}>
               <img src={stat.icon} alt={stat.title} className="w-6 h-6" />

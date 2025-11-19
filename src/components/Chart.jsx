@@ -77,7 +77,7 @@ const ChartSection = () => {
     datasets: [
       {
         data: [52, 41],
-        backgroundColor: ['#EA4335', '#34A853'],
+        backgroundColor: ['#E01B22', '#00A63E'],
         borderWidth: 0,
         cutout: '70%',
       },
@@ -94,7 +94,7 @@ const ChartSection = () => {
       },
       datalabels: {
         color: '#fff',
-        font: { weight: 'bold', size: 14 },
+        font: { weight: 'bold', size: 12 },
         formatter: (value, ctx) => {
           const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
           return Math.round((value / total) * 100) + '%';
@@ -120,16 +120,16 @@ const ChartSection = () => {
           <div className="w-full max-w-[250px] h-[250px] relative">
             <Doughnut data={donutData} options={donutOptions} />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-4xl font-bold">93</span>
+              <span className="text-4xl font-semibold">93</span>
             </div>
           </div>
           <div className="flex gap-6 mt-6">
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#34A853]"></span>
+              <span className="w-3 h-3 rounded-sm bg-[#00A63E]"></span>
               <span className="text-sm text-gray-600">Passed</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#EA4335]"></span>
+              <span className="w-3 h-3 rounded-sm bg-[#E01B22]"></span>
               <span className="text-sm text-gray-600">Failed</span>
             </div>
           </div>

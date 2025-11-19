@@ -53,7 +53,7 @@ const TestCaseAccordion = () => {
   };
 
   const getTaskStatusBadgeClass = (taskStatus) => {
-    if (taskStatus === 'Todo') return 'bg-gray-500 text-white';
+    if (taskStatus === 'Todo') return 'bg-gray-300 text-black';
     if (taskStatus === 'In Progress') return 'bg-yellow-200 text-yellow-900';
     if (taskStatus === 'Done') return 'bg-green-100 text-green-700';
     return '';
@@ -67,7 +67,7 @@ const TestCaseAccordion = () => {
           <h1 className="text-3xl font-semibold">Suites</h1>
           <p className="text-gray-500 mt-1">Manage and monitor your test suites</p>
         </div>
-        <button className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-all flex items-center gap-2">
+        <button className="bg-black text-white text-sm px-5 py-2.5 rounded-lg hover:bg-gray-800 transition-all flex items-center gap-2">
           <img src="/assets/icon/export.svg" alt="Export icon" className="w-5 h-5" />
           Export Report
         </button>
@@ -94,7 +94,7 @@ const TestCaseAccordion = () => {
             <input
               type="text"
               placeholder="Search suites..."
-              className="w-full pl-12 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+              className="w-full pl-12 pr-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
             />
           </div>
         </div>
@@ -105,7 +105,7 @@ const TestCaseAccordion = () => {
             onClick={() => setActiveFilter('all')}
             className={`px-12 py-0.2 rounded-lg text-sm transition-all ${
               activeFilter === 'all'
-                ? 'bg-black text-white shadow-md'
+                ? 'bg-black text-white shadow-md font-semibold'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
             }`}
           >
@@ -113,9 +113,9 @@ const TestCaseAccordion = () => {
           </button>
           <button
             onClick={() => setActiveFilter('passed')}
-            className={`px-10 py-0.2 rounded-lg text-sm transition-all ${
+            className={`px-9 py-0.2 rounded-lg text-sm transition-all ${
               activeFilter === 'passed'
-                ? 'bg-black text-white shadow-md'
+                ? 'bg-[#E5FFE5] text-[#006600] shadow-md font-semibold'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
             }`}
           >
@@ -123,9 +123,9 @@ const TestCaseAccordion = () => {
           </button>
           <button
             onClick={() => setActiveFilter('failed')}
-            className={`px-11 py-0.2 rounded-lg text-sm transition-all ${
+            className={`px-10 py-0.2 rounded-lg text-sm transition-all ${
               activeFilter === 'failed'
-                ? 'bg-black text-white shadow-md'
+                ? 'bg-[#FAD1D3] text-[#B6161B] shadow-md font-semibold '
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
             }`}
           >
@@ -144,7 +144,7 @@ const TestCaseAccordion = () => {
           >
             <div className="flex items-center gap-4">
               <svg 
-                className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${
+                className={`w-5 h-5 text-gray-400 transition-transform duration-500 ${
                   expandedId === suite.id ? 'rotate-90' : 'rotate-0'
                 }`}
                 fill="none" 
@@ -169,13 +169,13 @@ const TestCaseAccordion = () => {
           </button>
 
           <div 
-            className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
+            className={`border-t border-gray-200 transition-all duration-500 ease-in-out  ${
               expandedId === suite.id 
                 ? 'max-h-[2000px] opacity-100' 
                 : 'max-h-0 opacity-0 overflow-hidden'
             }`}
           >
-            <div className={`transition-all duration-300 ${expandedId === suite.id ? 'translate-y-0' : '-translate-y-4'}`}>
+            <div className={`transition-all duration-500 ${expandedId === suite.id ? 'translate-y-0' : '-translate-y-4'}`}>
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
@@ -234,12 +234,12 @@ const TestCaseAccordion = () => {
       <div className="flex justify-between items-center mt-6">
         <p className="text-sm text-gray-600">Menampilkan 3 dari 4 data</p>
         <div className="flex gap-2">
-          <button className="px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50">
+          <button className="px-3 py-2 text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
             Sebelumnya
           </button>
-          <button className="px-3 py-2 bg-black text-white rounded">1</button>
-          <button className="px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50">2</button>
-          <button className="px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50">
+          <button className="px-3 py-2 bg-black text-white rounded-lg text-sm">1</button>
+          <button className="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">2</button>
+          <button className="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
             Selanjutnya
           </button>
         </div>

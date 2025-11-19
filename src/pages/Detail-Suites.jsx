@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, Link } from "react-router-dom";
 import { useState } from "react";
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import CreateDefectModal from '../components/createDefectModal';
 
 export default function DetailSuites() {
@@ -58,13 +59,14 @@ export default function DetailSuites() {
                 </button>
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="px-8 py-2 bg-black text-white rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2"
-                >
+                  className="px-8 py-2 bg-black text-white rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
                   <img src="/assets/icon/defect.svg" alt="Defect icon" className="w-4 h-4" />
                   Create Defect
                 </button>
 
                 <CreateDefectModal
+                  transition
+                  className="fixed inset-0 bg-gray-900/50 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
                   isOpen={isModalOpen}
                   onClose={() => setIsModalOpen(false)}
                 />

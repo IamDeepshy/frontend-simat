@@ -91,7 +91,7 @@ export default function Login() {
                 <input
                   type="text"
                   id="username"
-                  placeholder="QualityAssurance"
+                  placeholder="Input your username..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all"
                   value={username}                            // <-- tambah
                   onChange={(e) => setUsername(e.target.value)}  // <-- tambah
@@ -111,7 +111,7 @@ export default function Login() {
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
-                    placeholder="qa123456"
+                    placeholder="Input your password..."
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all pr-12"
                     value={password}                            // <-- tambah
                     onChange={(e) => setPassword(e.target.value)}  // <-- tambah

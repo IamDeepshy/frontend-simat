@@ -12,7 +12,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
   const [errors, setErrors] = useState({});
   
   // State untuk track dropdown mana yang open
-  const [openDropdown, setOpenDropdown] = useState(null); // 'assignee' | 'priority' | 'status' | null
+  const [openDropdown, setOpenDropdown] = useState(null);
   
   // Refs untuk detect click outside
   const assigneeRef = useRef(null);
@@ -21,10 +21,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
 
   const developers = [
     { id: 'dev1', name: 'Anang Programmer' },
-    { id: 'dev2', name: 'Ani Programmer' },
-    { id: 'dev3', name: 'Ali Programmer' },
-    { id: 'dev4', name: 'Budi Developer' },
-    { id: 'dev5', name: 'Citra QA' }
+    { id: 'dev2', name: 'Ani Programmer' }
   ];
 
   const priorities = [
@@ -207,7 +204,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
           <form onSubmit={handleSubmit} className="p-6">
             {/* Defect Title */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-base font-medium text-gray-700 mb-2">
                 Defect Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -227,7 +224,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
 
             {/* Assign to Developer - DROPDOWN */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-base font-medium text-gray-700 mb-2">
                 Assign to Developer <span className="text-red-500">*</span>
               </label>
               <div ref={assigneeRef} className="relative">
@@ -278,7 +275,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
             <div className="grid grid-cols-2 gap-4 mb-4">
               {/* Priority - CUSTOM DROPDOWN */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-base font-medium text-gray-700 mb-2">
                   Priority <span className="text-red-500">*</span>
                 </label>
                 <div ref={priorityRef} className="relative">
@@ -327,7 +324,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
 
               {/* Status - CUSTOM DROPDOWN */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-base font-medium text-gray-700 mb-2">
                   Status
                 </label>
                 <div ref={statusRef} className="relative">
@@ -372,7 +369,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
 
             {/* Additional Notes */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-base font-medium text-gray-700 mb-2">
                 Additional Notes
               </label>
               <textarea

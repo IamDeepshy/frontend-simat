@@ -35,14 +35,14 @@ export default function TaskManagement() {
         title: 'Validate Table Header Wording',
         description: 'Table header showing incorrect number of columns',
         priority: 'high',
-        assignee: 'QA Team'
+        assignee: 'Anang Programmer'
       },
       {
         id: 'task-2',
         title: 'Fix Login Button Alignment',
         description: 'Login button is not centered properly on mobile view',
         priority: 'medium',
-        assignee: 'Dev Team'
+        assignee: 'Ani Programmer'
       }
     ],
     inProgress: [
@@ -51,14 +51,14 @@ export default function TaskManagement() {
         title: 'Update Dashboard Charts',
         description: 'Charts are not displaying correct data for last month',
         priority: 'low',
-        assignee: 'QA Team'
+        assignee: 'Ani Programmer'
       },
       {
         id: 'task-4',
         title: 'API Response Time Optimization',
         description: 'API taking too long to respond, need to optimize queries',
         priority: 'high',
-        assignee: 'Dev Team'
+        assignee: 'Ani Programmer'
       }
     ],
     done: [
@@ -67,24 +67,24 @@ export default function TaskManagement() {
         title: 'Setup CI/CD Pipeline',
         description: 'Configure automated testing and deployment pipeline',
         priority: 'high',
-        assignee: 'Dev Team'
+        assignee: 'Anang Programmer'
       },
       {
         id: 'task-6',
         title: 'Documentation Update',
         description: 'Update API documentation with new endpoints',
         priority: 'low',
-        assignee: 'QA Team'
+        assignee: 'Ani Programmer'
       }
     ]
   });
 
   const [activeId, setActiveId] = useState(null);
 
-  // 🔹 TAMBAHAN: state role user
+  // state role user
   const [role, setRole] = useState(null);
 
-  // 🔹 TAMBAHAN: ambil role dari backend
+  // ambil role dari backend
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -264,7 +264,7 @@ export default function TaskManagement() {
     });
 
     return (
-      <div className={`${bgColor} rounded-xl p-4`}>
+      <div className={`${bgColor} rounded-xl p-4 ring-1 ring-gray-200`}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-semibold text-lg">{title}</h3>
           <span className="bg-white px-3 py-1 rounded-full text-sm font-medium">
@@ -336,7 +336,7 @@ export default function TaskManagement() {
           
           {/* Chevron Down Icon */}
           <svg 
-            className={`w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 transition-transform pointer-events-none ${isOpen ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-gray-400 absolute right-4 transition-transform ${ isOpen ? 'rotate-180' : ''}`}
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -388,8 +388,8 @@ export default function TaskManagement() {
 
   const assigneeOptions = [
     { value: 'all', label: 'All Assigneed' },
-    { value: 'qa', label: 'QA Team' },
-    { value: 'dev', label: 'Dev Team' }
+    { value: 'anang', label: 'Anang Programmer' },
+    { value: 'ani', label: 'Ani Programmer' }
   ];
 
   const priorityOptions = [
@@ -427,7 +427,7 @@ export default function TaskManagement() {
           options={statusOptions}
         />
 
-        {/* 🔹 Assignee dropdown HANYA tampil kalau bukan developer */}
+        {/* Assignee dropdown HANYA tampil kalau bukan developer */}
         {role !== "developer" && (
           <CustomDropdown
             dropdownKey="assignee"
@@ -465,24 +465,27 @@ export default function TaskManagement() {
         />
       </div>
 
-      {/* Drag and Drop Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-3">
-        {/* Info Circle Icon - SVG */}
-        <svg 
-          className="w-5 h-5 text-blue-500 flex-shrink-0"
-          fill="currentColor" 
-          viewBox="0 0 20 20"
-        >
-          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-        </svg>
-        <p className="text-sm text-blue-700">
-          <strong>Tip:</strong> Drag and drop tasks between columns to update their status
-        </p>
-      </div>
+
+      {/* tip hanya tampil kalau role developer */}
+      {role == "developer" && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+          {/* Info Circle Icon - SVG */}
+          <svg 
+            className="w-5 h-5 text-blue-500 flex-shrink-0"
+            fill="currentColor" 
+            viewBox="0 0 20 20"
+          >
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          <p className="text-sm text-blue-700">
+            <strong>Tip:</strong> Drag and drop tasks between columns to update their status
+          </p>
+        </div>
+      )}
 
       {/* Kanban Board with Drag & Drop */}
       <DndContext
-        sensors={sensors}
+        sensors={role === "developer" ? sensors : []}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -493,19 +496,19 @@ export default function TaskManagement() {
             columnId="todo"
             title="To Do"
             tasks={tasks.todo}
-            bgColor="bg-gray-50"
+            bgColor="bg-gray-100"
           />
           <Column
             columnId="inProgress"
             title="In Progress"
             tasks={tasks.inProgress}
-            bgColor="bg-yellow-50"
+            bgColor="bg-[#FDFFE3]"
           />
           <Column
             columnId="done"
             title="Done"
             tasks={tasks.done}
-            bgColor="bg-green-50"
+            bgColor="bg-[#E9FFE9]"
           />
         </div>
 
