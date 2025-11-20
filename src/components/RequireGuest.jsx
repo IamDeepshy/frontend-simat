@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
-export default function RequireAuth() {
+export default function RequireGuest({ children }) {
   const [loading, setLoading] = useState(true);
-  const [isAuth, setIsAuth] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -12,9 +12,9 @@ export default function RequireAuth() {
           credentials: "include",
         });
 
-        setIsAuth(res.ok); // 200 = login, 401 = tidak login
+        setLoggedIn(res.ok);
       } catch {
-        setIsAuth(false);
+        setLoggedIn(false);
       } finally {
         setLoading(false);
       }
@@ -24,7 +24,11 @@ export default function RequireAuth() {
   }, []);
 
   if (loading) return <div>Checking session...</div>;
-  if (!isAuth) return <Navigate to="/login" replace />;
 
-  return <Outlet />;
+  if (loggedIn) {
+    // Sudah login → larang kembali ke /login
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
 }

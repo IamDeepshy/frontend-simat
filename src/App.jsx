@@ -5,35 +5,56 @@ import Suites from "./pages/Suites";
 import TaskManagement from "./pages/Task-Management";
 import DetailSuites from "./pages/Detail-Suites";
 import Login from "./pages/Login";
-import RequireAuth from "./components/RequireAuth";
-import RequireQa from "./components/RequireQa";
 
+import RequireAuth from "./components/RequireAuth";
+import RequireGuest from "./components/RequireGuest";
+import RequireRole from "./components/RequireRole";
+import NotFound from "./pages/NotFound";
 
 export default function App() {
   return (
     <Routes>
-      {/* Public route */}
-      <Route path="/login" element={<Login />} />
 
-      {/* Semua route di bawah ini WAJIB login */}
+      {/* Halaman terbuka hanya untuk tamu */}
+      <Route
+        path="/login"
+        element={
+          <RequireGuest>
+            <Login />
+          </RequireGuest>
+        }
+      />
+
+      {/* Semua halaman berikut wajib login */}
       <Route element={<RequireAuth />}>
-
-        {/* Semua route di bawah ini pakai MainLayout (sidebar, dll) */}
+        {/* CATCH ALL — jika page tidak ditemukan */}
+        <Route path="*" element={<NotFound />} />
         <Route element={<MainLayout />}>
-          <Route path="/" element={
-            <RequireQa>
-              <Dashboard/>
-            </RequireQa>  
-          } /> // Dashboard hanya untuk QA
 
-          {/* Ini bisa untuk semua role */}
+          {/* Dashboard hanya QA */}
+          <Route path="/" 
+            element={
+              <RequireRole allowed={["qa"]}>
+                <Dashboard />
+              </RequireRole>
+            }
+          />
+
+          {/* Suites bisa QA & Developer */}
           <Route path="/suites" element={<Suites />} />
-          <Route path="/task-management" element={<TaskManagement />} />
-          <Route path="/detail-suites" element={<DetailSuites />} />
+
+          {/* Task Management → semua role */}
+          <Route
+            path="/task-management"
+            element={<TaskManagement />}
+          />
+
+          <Route
+            path="/detail-suites"
+            element={<DetailSuites />}
+          />
         </Route>
-
       </Route>
-
     </Routes>
   );
 }

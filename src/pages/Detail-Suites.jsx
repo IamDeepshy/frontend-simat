@@ -1,7 +1,6 @@
 import React from 'react';
 import { useLocation, Link } from "react-router-dom";
 import { useState } from "react";
-import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import CreateDefectModal from '../components/createDefectModal';
 
 export default function DetailSuites() {

@@ -21,11 +21,16 @@ export default function Login() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.message || "Login gagal");
+        if (res.status === 401) {
+          alert(data.message || "Username atau password salah");
+        } else {
+          alert(data.message || "Terjadi kesalahan pada server");
+        }
         return;
       }
 
-      // 🔎 Setelah login sukses, tanya role ke backend
+
+      // Setelah login sukses, tanya role ke backend
       const meRes = await fetch("http://localhost:3000/auth/me", {
         credentials: "include",
       });
@@ -38,7 +43,7 @@ export default function Login() {
 
       const me = await meRes.json();
 
-      // 🎯 Redirect sesuai role
+      // Redirect sesuai role
       if (me.role === "qa") {
         navigate("/");
       } else if (me.role === "developer") {

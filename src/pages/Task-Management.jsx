@@ -209,7 +209,7 @@ export default function TaskManagement() {
     setActiveId(null);
   };
 
-  const TaskCard = ({ task, index }) => {
+  const TaskCard = ({ task }) => {
     const {
       attributes,
       listeners,
