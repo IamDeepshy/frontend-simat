@@ -19,10 +19,9 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
   const priorityRef = useRef(null);
   const statusRef = useRef(null);
 
-  const developers = [
-    { id: 'dev1', name: 'Anang Programmer' },
-    { id: 'dev2', name: 'Ani Programmer' }
-  ];
+  const [developers, setDevelopers] = useState([]);
+
+
 
   const priorities = [
     { value: 'high', label: 'High' },
@@ -35,6 +34,28 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
     { value: 'inProgress', label: 'In Progress' },
     { value: 'done', label: 'Done' }
   ];
+
+
+  // Ambil data role developer
+  useEffect(() => {
+    const fetchDevelopers = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:3000/api/developers",
+          {
+            credentials: "include"
+          }
+        );
+
+        const data = await res.json();
+        setDevelopers(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchDevelopers();
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -57,8 +78,9 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
   // Get display text for selected values
   const getAssigneeLabel = () => {
     const dev = developers.find(d => d.id === formData.assignedTo);
-    return dev ? dev.name : 'Select a developer';
+    return dev ? dev.username : 'Select a developer';
   };
+  
 
   const getPriorityLabel = () => {
     const priority = priorities.find(p => p.value === formData.priority);
@@ -260,7 +282,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
                           formData.assignedTo === dev.id ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-900'
                         } ${index === 0 ? 'rounded-t-xl' : ''} ${index === developers.length - 1 ? 'rounded-b-xl' : ''}`}
                       >
-                        {dev.name}
+                        {dev.username}
                       </button>
                     ))}
                   </div>

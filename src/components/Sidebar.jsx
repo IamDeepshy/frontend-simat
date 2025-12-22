@@ -74,7 +74,7 @@ export default function Sidebar() {
 
   //  Filter menu berdasarkan role
   const visibleMenuItems = menuItems.filter((item) => {
-    if (role === "developer" && item.path === "/") {
+    if (role === "dev" && item.path === "/") {
       // developer TIDAK boleh melihat Dashboard
       return false;
     }

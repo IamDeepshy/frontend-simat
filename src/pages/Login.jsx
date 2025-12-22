@@ -46,7 +46,7 @@ export default function Login() {
       // Redirect sesuai role
       if (me.role === "qa") {
         navigate("/");
-      } else if (me.role === "developer") {
+      } else if (me.role === "dev") {
         navigate("/suites");
       } else {
         // fallback, misal role lain

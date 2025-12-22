@@ -428,7 +428,7 @@ export default function TaskManagement() {
         />
 
         {/* Assignee dropdown HANYA tampil kalau bukan developer */}
-        {role !== "developer" && (
+        {role !== "dev" && (
           <CustomDropdown
             dropdownKey="assignee"
             filterType="assignee"
@@ -467,7 +467,7 @@ export default function TaskManagement() {
 
 
       {/* tip hanya tampil kalau role developer */}
-      {role == "developer" && (
+      {role == "dev" && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-3">
           {/* Info Circle Icon - SVG */}
           <svg 
@@ -485,7 +485,7 @@ export default function TaskManagement() {
 
       {/* Kanban Board with Drag & Drop */}
       <DndContext
-        sensors={role === "developer" ? sensors : []}
+        sensors={role === "dev" ? sensors : []}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
