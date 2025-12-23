@@ -43,7 +43,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="flex-grow ml-[290px] p-4 min-h-screen overflow-y-auto">
+    <div className="flex-grow ml-[275px] p-4 min-h-screen overflow-y-auto">
       {/* Header Section */}
       <Header />
 

@@ -400,7 +400,7 @@ export default function TaskManagement() {
   ];
 
   return (
-    <div className="flex-grow ml-[290px] p-8 min-h-screen overflow-y-auto">
+    <div className="flex-grow ml-[260px] pt-4 pb-8 pr-8 pl-8 min-h-screen overflow-y-auto">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-semibold">Task Management</h1>

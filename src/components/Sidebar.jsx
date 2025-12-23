@@ -83,7 +83,7 @@ export default function Sidebar() {
   });
 
   return (
-    <div className="fixed top-0 left-0 w-[260px] h-[95vh] m-3 bg-[#1a1a1a] text-white rounded-[18px] flex flex-col justify-between p-5">
+    <div className="fixed top-0 left-0 w-[260px] h-[100vh] bg-[#1a1a1a] text-white flex flex-col justify-between p-5">
       {/* Logo Section */}
       <div className="flex flex-col">
         <img

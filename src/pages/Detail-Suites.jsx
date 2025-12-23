@@ -18,7 +18,7 @@ export default function DetailSuites() {
   };
 
   return (
-    <div className="flex-grow ml-[290px] p-8 min-h-screen overflow-y-auto">
+    <div className="flex-grow ml-[260px] p-8 min-h-screen overflow-y-auto">
       {testCase ? (
         <>
           {/* Back Navigation */}

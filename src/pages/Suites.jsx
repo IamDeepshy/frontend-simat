@@ -60,7 +60,7 @@ const TestCaseAccordion = () => {
   };
 
   return (
-    <div className="flex-grow ml-[290px] p-8 min-h-screen overflow-y-auto">
+    <div className="flex-grow ml-[260px] pt-4 pb-8 pr-8 pl-8 min-h-screen overflow-y-auto">
       {/* Header Section */}
       <div className="flex justify-between items-start mb-6">
         <div>
