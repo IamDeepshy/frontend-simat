@@ -14,6 +14,7 @@ const TestCaseAccordion = () => {
    * FETCH DATA
    * ====================================================== */
   useEffect(() => {
+    setCurrentPage(1);
     const fetchSuites = async () => {
       try {
         const res = await fetch('http://localhost:3000/api/grouped-testcases', {
@@ -26,13 +27,17 @@ const TestCaseAccordion = () => {
           parentCode: suite.parentCode,
           totalTests: suite.totalTests,
           passed: suite.passed,
-          failed: suite.failed,
-          broken: suite.broken,
+          failed: suite.failed + suite.broken,
+          // broken: suite.broken,
           testCases: suite.testCases.map(tc => ({
             name: tc.suiteName,
             testName: tc.testName,
-            status: tc.status,
+            status: normalizeStatus(tc.status),
             duration: formatDuration(tc.durationMs),
+            errorMessage: tc.errorMessage,
+            screenshotUrl: tc.screenshotUrl,
+            lastRunAt: tc.lastRunAt,
+            runId: tc.runId,  
           })),
         }));
 
@@ -45,7 +50,7 @@ const TestCaseAccordion = () => {
     };
 
     fetchSuites();
-  }, []);
+  }, [activeFilter]);
 
   /* ======================================================
    * HELPERS
@@ -61,19 +66,51 @@ const TestCaseAccordion = () => {
     return `${min}m ${sec % 60}s`;
   };
 
+  const normalizeStatus = (status) => {
+    if (status === 'PASSED') return 'PASSED';
+    if (status === 'FAILED' || status === 'BROKEN') return 'FAILED';
+    return status;
+  };
+
   const getStatusBadgeClass = (status) => {
     if (status === 'PASSED') return 'bg-green-100 text-green-700';
     if (status === 'FAILED') return 'bg-red-100 text-red-700';
-    if (status === 'BROKEN') return 'bg-yellow-100 text-yellow-800';
     return '';
+  };
+
+  const filterTestCases = (testCases) => {
+    if (activeFilter === 'passed') {
+      return testCases.filter(tc => tc.status === 'PASSED');
+    }
+
+    if (activeFilter === 'failed') {
+      return testCases.filter(tc => tc.status === 'FAILED');
+    }
+
+    return testCases; // all
+  };
+
+  const getFilteredCounts = (suite) => {
+    const filtered = filterTestCases(suite.testCases);
+
+    const passed = filtered.filter(tc => tc.status === 'PASSED').length;
+    const failed = filtered.filter(tc => tc.status === 'FAILED').length;
+
+    return { passed, failed };
   };
 
   /* ======================================================
    * PAGINATION LOGIC (ACCORDION)
    * ====================================================== */
-  const totalPages = Math.ceil(testSuites.length / ITEMS_PER_PAGE);
 
-  const paginatedSuites = testSuites.slice(
+  const filteredSuites = testSuites.filter((suite) => {
+    const filteredTestCases = filterTestCases(suite.testCases);
+    return filteredTestCases.length > 0;
+  });
+
+  const totalPages = Math.ceil(filteredSuites.length / ITEMS_PER_PAGE);
+
+  const paginatedSuites = filteredSuites.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
@@ -81,6 +118,31 @@ const TestCaseAccordion = () => {
   if (loading) {
     return <div className="ml-[260px] p-8">Loading...</div>;
   }
+
+  /* ======================================================
+   * RE RUN HANDLE
+   * ====================================================== */
+
+  const handleRerun = async (testCase) => {
+    try {
+      await fetch("http://localhost:3000/api/jenkins/rerun/spec", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          spec: testCase.name, // 🔥 AT-CORE-0013-01
+        }),
+      });
+
+      alert(`Rerun ${testCase.name} berhasil ditrigger`);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal trigger rerun");
+    }
+  };
+
 
   return (
     <div className="ml-[260px] p-8 min-h-screen">
@@ -160,88 +222,124 @@ const TestCaseAccordion = () => {
 
 
       {/* ================= ACCORDION LIST ================= */}
-      {paginatedSuites.map((suite) => (
-        <div key={suite.id} className="bg-white border rounded-xl mb-4">
+      {paginatedSuites.map((suite) => {
+        const { passed, failed } = getFilteredCounts(suite);
 
-          {/* HEADER */}
-          <button
-            onClick={() => toggleAccordion(suite.id)}
-            className="w-full p-5 flex justify-between items-center hover:bg-gray-50"
-          >
-            <div className="flex items-center gap-4">
-              <svg
-                className={`w-5 h-5 transition-transform ${
-                  expandedId === suite.id ? 'rotate-90' : ''
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+        // OPTIONAL:
+        // kalau filter aktif & suite tidak punya test yang cocok, hide suite
+        if (activeFilter !== 'all' && passed + failed === 0) {
+          return null;
+        }
 
-              <div>
-                <div className="font-semibold text-lg">{suite.parentCode}</div>
-                <div className="text-sm text-gray-500">{suite.totalTests} Test Cases</div>
+        return (
+          <div key={suite.id} className="bg-white border rounded-xl mb-4">
+            
+            {/* HEADER */}
+            <button
+              onClick={() => toggleAccordion(suite.id)}
+              className="w-full p-5 flex justify-between items-center hover:bg-gray-50"
+            >
+              <div className="flex items-center gap-4">
+                <svg
+                  className={`w-5 h-5 transition-transform ${
+                    expandedId === suite.id ? 'rotate-90' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+
+                <div>
+                  <div className="font-semibold text-lg">{suite.parentCode}</div>
+                  <div className="text-sm text-gray-500">{suite.totalTests} Test Cases</div>
+                </div>
               </div>
-            </div>
 
-            <div className="flex gap-2">
-              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-                {suite.passed} Passed
-              </span>
-              <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm">
-                {suite.failed} Failed
-              </span>
-              <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">
-                {suite.broken} Broken
-              </span>
-            </div>
-          </button>
+              {/* BADGE */}
+              <div className="flex gap-2">
+                {(activeFilter === 'all' || activeFilter === 'passed') && passed > 0 && (
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                    {passed} Passed
+                  </span>
+                )}
 
-          {/* CONTENT */}
-          {expandedId === suite.id && (
-            <table className="w-full border-t">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm">Test Name</th>
-                  <th className="px-6 py-3 text-center text-sm">Status</th>
-                  <th className="px-6 py-3 text-center text-sm">Duration</th>
-                  <th className="px-6 py-3 text-center text-sm">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {suite.testCases.map((tc, idx) => (
-                  <tr key={idx}>
-                    <td className="px-6 py-4">
-                      <div className="font-medium">{tc.name}</div>
-                      <div className="text-xs text-gray-500">{tc.testName}</div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-4 py-0.5 rounded-full text-sm ${getStatusBadgeClass(tc.status)}`}>
-                        {tc.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center text-sm">{tc.duration}</td>
-                    <td className="px-6 py-4 text-center">
-                      <Link to="/detail-suites">
-                        <img src="/assets/icon/view.svg" className="w-5 h-5 mx-auto" />
-                      </Link>
-                    </td>
+                {(activeFilter === 'all' || activeFilter === 'failed') && failed > 0 && (
+                  <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm">
+                    {failed} Failed
+                  </span>
+                )}
+              </div>
+            </button>
+
+            {/* CONTENT */}
+            {expandedId === suite.id && (
+              <table className="w-full border-t">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-sm">Test Name</th>
+                    <th className="px-6 py-3 text-center text-sm">Status</th>
+                    <th className="px-6 py-3 text-center text-sm">Duration</th>
+                    <th className="px-6 py-3 text-center text-sm">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      ))}
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filterTestCases(suite.testCases).map((tc, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 text-sm">
+                        <div className="font-medium">{tc.name}</div>
+                        <div className="text-gray-500 text-xs">{tc.testName}</div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={`inline-block px-6 py-0.5 rounded-full text-sm font-medium ${getStatusBadgeClass(
+                            tc.status
+                          )}`}
+                        >
+                          {tc.status}
+                        </span>
+                      </td>
+                      {/* <td className="px-6 py-4 text-center text-gray-400">-</td> */}
+                      <td className="px-6 py-4 text-center text-sm">
+                        {tc.duration}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-center gap-3">
+                          <Link to="/detail-suites" state={{parentCode: suite.parentCode, testCases: tc}}>
+                            <img src="/assets/icon/view.svg" className="w-5 h-5" />
+                          </Link>
+                          <button
+                              onClick={() => handleRerun(tc)}
+                              className="hover:opacity-70 transition-opacity"
+                            >
+                              <img src="/assets/icon/rerun.svg" alt="Rerun" className="w-5 h-5" />
+                          </button>
+
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        );
+      })}
+
 
       {/* ================= PAGINATION ================= */}
       <div className="flex justify-between items-center mt-6">
         <p className="text-sm text-gray-600">
-          Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
-          {Math.min(currentPage * ITEMS_PER_PAGE, testSuites.length)} dari {testSuites.length} suites
+          Menampilkan{' '}
+          {filteredSuites.length === 0
+            ? 0
+            : (currentPage - 1) * ITEMS_PER_PAGE + 1}
+          –
+          {Math.min(currentPage * ITEMS_PER_PAGE, filteredSuites.length)} dari{' '}
+          {filteredSuites.length} suites
         </p>
+
 
         <div className="flex gap-2">
           <button
@@ -278,3 +376,5 @@ const TestCaseAccordion = () => {
 };
 
 export default TestCaseAccordion;
+
+

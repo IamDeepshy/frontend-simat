@@ -4,22 +4,23 @@ import { useState } from "react";
 import CreateDefectModal from '../components/createDefectModal';
 
 export default function DetailSuites() {
-  const location = useLocation();
-  const { testCase } = location.state || {};
+  const { state } = useLocation();
+  const { testCases } = state;
   
   // MODAL
   const [isModalOpen, setIsModalOpen] = useState(false);
 
 
   const getStatusBadgeClass = (status) => {
-    if (status === 'Passed') return 'bg-green-100 text-green-700';
-    if (status === 'Failed') return 'bg-red-100 text-red-700';
+    if (status === 'PASSED') return 'bg-green-100 text-green-700';
+    if (status === 'FAILED' || status === 'BROKEN') return 'bg-red-100 text-red-700';
+    // if (status === 'BROKEN') return 'bg-yellow-100 text-yellow-800';
     return '';
   };
 
   return (
     <div className="flex-grow ml-[260px] p-8 min-h-screen overflow-y-auto">
-      {testCase ? (
+      {testCases ? (
         <>
           {/* Back Navigation */}
           <Link 
@@ -38,14 +39,14 @@ export default function DetailSuites() {
             {/* Test Case Header */}
             <div className="flex justify-between items-start mb-6 pb-6 border-b border-gray-200">
               <div>
-                <h5 className="text-xl font-semibold mb-3">{testCase.name}</h5>
+                <h5 className="text-xl font-semibold mb-3">{testCases.name}</h5>
                 <div className="flex items-center gap-4">
-                  <span className={`px-8 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(testCase.status)}`}>
-                    {testCase.status}
+                  <span className={`px-8 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(testCases.status)}`}>
+                    {testCases.status}
                   </span>
                   <span className="text-gray-500 flex items-center gap-1">
                     <i className="fa-regular fa-clock"></i>
-                    {testCase.duration}
+                    {testCases.duration}
                   </span>
                 </div>
               </div>
@@ -73,12 +74,12 @@ export default function DetailSuites() {
             </div>
 
             {/* Error Details Section */}
-            {testCase.errormsg && (
+            {testCases.errorMessage && (
               <div className="bg-[#ff3e3e16] -mx-6 px-6 py-6 mb-6">
                 <h5 className="text-lg font-semibold text-red-700 mb-4">Error Details</h5>
                 <div className="bg-white rounded-lg p-4">
                   <p className="text-red-700 whitespace-pre-wrap text-medium">
-                    {testCase.errormsg}
+                    {testCases.errorMessage}
                   </p>
                 </div>
               </div>
@@ -86,12 +87,12 @@ export default function DetailSuites() {
 
             {/* Execution Record Section */}
             <div className="mt-6">
-              <h5 className="text-lg font-semibold mb-4">Execution Record</h5>
+              <h5 className="text-lg font-semibold mb-4">Failure Evidence</h5>
               <div className="bg-gray-100 rounded-lg p-6 relative">
-                <img 
-                  src="/assets/image/execution-record.png" 
-                  alt="Execution Record" 
-                  className="w-full rounded-lg"
+                <img
+                  src={`http://localhost:3000/screenshots/${testCases.screenshotUrl}`}
+                  alt="Screenshot"
+                  className="rounded-lg border max-w-full"
                 />
               </div>
             </div>

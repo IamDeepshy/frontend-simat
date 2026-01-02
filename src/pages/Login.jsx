@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");   // <-- tambah
   const [password, setPassword] = useState("");   // <-- tambah
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,6 +32,7 @@ export default function Login() {
         return;
       }
 
+      await refreshUser();
 
       // Setelah login sukses, tanya role ke backend
       const meRes = await fetch("http://localhost:3000/auth/me", {
