@@ -1,34 +1,54 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useRerunTest } from '../context/useRerunTest';
+import RerunLoadingModal from '../components/RerunLoadingModal';
+import Swal from 'sweetalert2';
 
 const ITEMS_PER_PAGE = 5;
 
 const TestCaseAccordion = () => {
+ /* ======================================================
+   * RE RUN STATE
+   * ====================================================== */
+  const {
+    rerun,
+    isRerunning,
+    progress,
+    rerunTestName,
+  } = useRerunTest();
+
+  // untuk mendeteksi perubahan dari running -> selesai
+  const [wasRerunning, setWasRerunning] = useState(false);
+
+  /* ======================================================
+   * LOCAL STATE
+   * ====================================================== */
   const [expandedId, setExpandedId] = useState(null);
   const [testSuites, setTestSuites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilter, setActiveFilter] = useState('all');
 
+
+  
   /* ======================================================
    * FETCH DATA
    * ====================================================== */
   useEffect(() => {
     setCurrentPage(1);
+
     const fetchSuites = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/grouped-testcases', {
-          credentials: 'include',
-        });
+        const res = await fetch(
+          'http://localhost:3000/api/grouped-testcases',
+          { credentials: 'include' }
+        );
         const data = await res.json();
 
         const mapped = data.map((suite, idx) => ({
           id: `${suite.parentCode}-${idx}`,
           parentCode: suite.parentCode,
           totalTests: suite.totalTests,
-          passed: suite.passed,
-          failed: suite.failed + suite.broken,
-          // broken: suite.broken,
           testCases: suite.testCases.map(tc => ({
             name: tc.suiteName,
             testName: tc.testName,
@@ -36,8 +56,9 @@ const TestCaseAccordion = () => {
             duration: formatDuration(tc.durationMs),
             errorMessage: tc.errorMessage,
             screenshotUrl: tc.screenshotUrl,
+            specPath: tc.specPath,
             lastRunAt: tc.lastRunAt,
-            runId: tc.runId,  
+            runId: tc.runId,
           })),
         }));
 
@@ -51,6 +72,36 @@ const TestCaseAccordion = () => {
 
     fetchSuites();
   }, [activeFilter]);
+
+  /* ======================================================
+   * SWEETALERT – RERUN FINISHED
+   * ====================================================== */
+  useEffect(() => {
+    if (wasRerunning && !isRerunning && progress === 100) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Re-run successful',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: true,
+        html: `
+          <p class="text-sm text-gray-500">
+            Test case <b>${rerunTestName}</b> completed successfully.
+          </p>
+        `,
+        confirmButtonText: 'OK',
+        buttonsStyling: false,
+        customClass: {
+          confirmButton:
+            'bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800',
+        },
+      });
+    }
+
+    setWasRerunning(isRerunning);
+  }, [isRerunning, progress, rerunTestName, wasRerunning]);
+
+
 
   /* ======================================================
    * HELPERS
@@ -100,7 +151,7 @@ const TestCaseAccordion = () => {
   };
 
   /* ======================================================
-   * PAGINATION LOGIC (ACCORDION)
+   * PAGINATION LOGIC
    * ====================================================== */
 
   const filteredSuites = testSuites.filter((suite) => {
@@ -118,31 +169,6 @@ const TestCaseAccordion = () => {
   if (loading) {
     return <div className="ml-[260px] p-8">Loading...</div>;
   }
-
-  /* ======================================================
-   * RE RUN HANDLE
-   * ====================================================== */
-
-  const handleRerun = async (testCase) => {
-    try {
-      await fetch("http://localhost:3000/api/jenkins/rerun/spec", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          spec: testCase.name, // 🔥 AT-CORE-0013-01
-        }),
-      });
-
-      alert(`Rerun ${testCase.name} berhasil ditrigger`);
-    } catch (err) {
-      console.error(err);
-      alert("Gagal trigger rerun");
-    }
-  };
-
 
   return (
     <div className="ml-[260px] p-8 min-h-screen">
@@ -310,12 +336,12 @@ const TestCaseAccordion = () => {
                             <img src="/assets/icon/view.svg" className="w-5 h-5" />
                           </Link>
                           <button
-                              onClick={() => handleRerun(tc)}
-                              className="hover:opacity-70 transition-opacity"
-                            >
-                              <img src="/assets/icon/rerun.svg" alt="Rerun" className="w-5 h-5" />
+                            onClick={() => rerun(tc)}
+                            disabled={isRerunning}
+                            className="hover:opacity-70 transition-opacity disabled:opacity-40"
+                          >
+                            <img src="/assets/icon/rerun.svg" alt="Rerun" className="w-5 h-5" />
                           </button>
-
                         </div>
                       </td>
                     </tr>
@@ -371,6 +397,15 @@ const TestCaseAccordion = () => {
           </button>
         </div>
       </div>
+
+      {/* Modal Re run */}
+      <RerunLoadingModal
+        open={isRerunning}
+        progress={progress}
+        testName={rerunTestName}
+      />
+
+
     </div>
   );
 };

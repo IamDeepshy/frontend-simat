@@ -1,45 +1,95 @@
-import React from "react";
+import React, { useEffect, useState } from 'react';
 import ChartSection from "../components/Chart";
 import Header from "../components/Header";
 import { Navigate } from "react-router-dom";
-  
+import { Link } from 'react-router-dom';
+
 
 export default function Dashboard() {
-  const stats = [
-    {
-      title: "Total Test Cases",
-      value: "1,234",
-      icon: "/assets/icon/list.svg",
-      bgColor: "bg-[#EFF6FF]",
-    },
-    {
-      title: "Total Test Passed",
-      value: "1,234",
-      icon: "/assets/icon/passed.svg",
-      bgColor: "bg-[#F0FDF4]",
-    },
-    {
-      title: "Total Test Failed",
-      value: "1,234",
-      icon: "/assets/icon/failed.svg",
-      bgColor: "bg-[#FEF2F2]",
-    },
-    {
-      title: "In Progress Task",
-      value: "1,234",
-      icon: "/assets/icon/progress.svg",
-      bgColor: "bg-[#FEFCE8]",
-    },
-  ];
+  const [testSuites, setTestSuites] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const suites = [
-    { id: "AT-CORE-0034", status: "failed", passed: 18, total: 2, percentage: 90 },
-    { id: "AT-CORE-0034", status: "passed", passed: 15, total: 0, percentage: 100 },
-    { id: "AT-CORE-0034", status: "failed", passed: 18, total: 2, percentage: 90 },
-    { id: "AT-CORE-0034", status: "failed", passed: 18, total: 2, percentage: 90 },
-    { id: "AT-CORE-0034", status: "failed", passed: 18, total: 2, percentage: 90 },
-    { id: "AT-CORE-0034", status: "failed", passed: 18, total: 2, percentage: 90 },
-    { id: "AT-CORE-0034", status: "failed", passed: 18, total: 2, percentage: 90 },
+  /* ======================================================
+   * HELPERS
+   * ====================================================== */
+  const formatDuration = (ms) => {
+    if (!ms) return '-';
+    const sec = Math.floor(ms / 1000);
+    const min = Math.floor(sec / 60);
+    return `${min}m ${sec % 60}s`;
+  };
+
+  const normalizeStatus = (status) => {
+    if (status === 'PASSED') return 'PASSED';
+    if (status === 'FAILED' || status === 'BROKEN') return 'FAILED';
+    return status;
+  };
+
+  const getFilteredCounts = (suite) => {
+    const passed = suite.testCases.filter(tc => tc.status === 'PASSED').length;
+    const failed = suite.testCases.filter(tc => tc.status === 'FAILED').length;
+    const total = suite.testCases.length;
+    const percentage = total === 0 ? 0 : Math.round((passed / total) * 100);
+    return { passed, failed, total, percentage };
+  };
+
+  /* ======================================================
+   * FETCH SUITES DATA
+   * ====================================================== */
+  useEffect(() => {
+    const fetchSuites = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/grouped-testcases', { credentials: 'include' });
+        const data = await res.json();
+
+        const mapped = data.map((suite, idx) => ({
+          id: `${suite.parentCode}-${idx}`,
+          parentCode: suite.parentCode,
+          testCases: suite.testCases.map(tc => ({
+            name: tc.suiteName,
+            testName: tc.testName,
+            status: normalizeStatus(tc.status),
+            duration: formatDuration(tc.durationMs),
+            errorMessage: tc.errorMessage,
+            screenshotUrl: tc.screenshotUrl,
+            specPath: tc.specPath,
+            lastRunAt: tc.lastRunAt,
+            runId: tc.runId,
+          })),
+        }));
+
+        setTestSuites(mapped);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSuites();
+  }, []);
+
+  if (loading) return <p className="p-6 text-center">Loading...</p>;
+
+  /* ======================================================
+   * CALCULATE STATS
+   * ====================================================== */
+  const totalTests = testSuites.reduce((acc, suite) => acc + suite.testCases.length, 0);
+  const totalPassed = testSuites.reduce(
+    (acc, suite) => acc + getFilteredCounts(suite).passed,
+    0
+  );
+  const totalFailed = testSuites.reduce(
+    (acc, suite) => acc + getFilteredCounts(suite).failed,
+    0
+  );
+  const inProgress = totalTests - (totalPassed + totalFailed);
+
+  const stats = [
+    { title: "Total Test Cases", value: totalTests, icon: "/assets/icon/list.svg", bgColor: "bg-[#EFF6FF]" },
+    { title: "Total Test Passed", value: totalPassed, icon: "/assets/icon/passed.svg", bgColor: "bg-[#F0FDF4]" },
+    { title: "Total Test Failed", value: totalFailed, icon: "/assets/icon/failed.svg", bgColor: "bg-[#FEF2F2]" },
+    { title: "In Progress Task", value: inProgress, icon: "/assets/icon/progress.svg", bgColor: "bg-[#FEFCE8]" },
   ];
 
   return (
@@ -71,30 +121,35 @@ export default function Dashboard() {
       {/* Suites Section */}
       <div className="bg-white rounded-2xl shadow-sm p-6 mt-4">
         <h4 className="font-semibold text-lg mb-4">Suites</h4>
-        <div className="space-y-3">
-          {suites.map((suite, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200"
-            >
-              <div className={`w-2 h-2 rounded-full ${suite.status === 'passed' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <h6 className="font-medium flex-1">{suite.id}</h6>
-              <span className="text-sm text-teal-600">{suite.passed}/{suite.total}</span>
-              <div className="w-24 bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-teal-500 h-2 rounded-full" 
-                  style={{ width: `${suite.percentage}%` }}
-                ></div>
+        <div className="space-y-5">
+          {testSuites.slice(0, 5).map((suite, index) => {
+            const { passed, failed, total, percentage } = getFilteredCounts(suite);
+            return (
+              <div
+                key={index}
+                className="bg-white rounded-xl shadow-sm p-4 py-6 flex items-center gap-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200"
+              >
+                <div className={`w-2 h-2 rounded-full ${passed === total ? 'bg-green-500' : failed > 0 ? 'bg-red-500' : 'bg-yellow-500'}`}></div>
+                <h6 className="font-medium flex-1">{suite.id}</h6>
+                <span className="text-sm text-teal-600">{passed}/{total}</span>
+                <div className="w-24 bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-teal-500 h-2 rounded-full" 
+                    style={{ width: `${percentage}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm text-gray-600 w-12 text-right">{percentage}%</span>
               </div>
-              <span className="text-sm text-gray-600 w-12 text-right">{suite.percentage}%</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
-        
-        <button className="w-full bg-black text-white py-3 rounded-lg mt-4 hover:bg-gray-800 transition-colors">
-          View All Suites
-        </button>
+        <Link to="/suites">
+          <button className="w-full bg-black text-white py-3 rounded-lg mt-4 hover:bg-gray-800 transition-colors">
+            View All Suites
+          </button>
+        </Link>
       </div>
+
     </div>
   );
 }
