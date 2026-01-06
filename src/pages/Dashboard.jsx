@@ -45,6 +45,7 @@ export default function Dashboard() {
         const mapped = data.map((suite, idx) => ({
           id: `${suite.parentCode}-${idx}`,
           parentCode: suite.parentCode,
+
           testCases: suite.testCases.map(tc => ({
             name: tc.suiteName,
             testName: tc.testName,

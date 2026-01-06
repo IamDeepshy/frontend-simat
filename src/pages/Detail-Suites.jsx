@@ -97,6 +97,19 @@ export default function DetailSuites() {
                     <i className="fa-regular fa-file"></i>
                     {testCases.name}
                   </span>
+
+                 <span className="text-gray-500 flex items-center gap-1 text-sm">
+                    <i className="fa-solid fa-flag-checkered"></i>
+                    {testCases.lastRunAt
+                      ? new Date(testCases.lastRunAt).toLocaleString('id-ID', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '-'}
+                  </span>
                 </div>
               </div>
 
@@ -109,19 +122,24 @@ export default function DetailSuites() {
                   <img src="/assets/icon/rerun.svg" alt="Rerun icon" className="w-4 h-4" />
                   Rerun Test
                 </button>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="px-8 py-2 bg-black text-white rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                  <img src="/assets/icon/defect.svg" alt="Defect icon" className="w-4 h-4" />
-                  Create Defect
-                </button>
 
-                <CreateDefectModal
-                  transition
-                  className="fixed inset-0 bg-gray-900/50 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
-                  isOpen={isModalOpen}
-                  onClose={() => setIsModalOpen(false)}
-                />
+                {testCases.status !== "PASSED" && (
+                  <>
+                    <button
+                      onClick={() => setIsModalOpen(true)}
+                      className="px-8 py-2 bg-black text-white rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                      <img src="/assets/icon/defect.svg" alt="Defect icon" className="w-4 h-4" />
+                      Create Defect
+                    </button>
+
+                    <CreateDefectModal
+                      transition
+                      className="fixed inset-0 bg-gray-900/50 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
+                      isOpen={isModalOpen}
+                      onClose={() => setIsModalOpen(false)}
+                    />
+                  </>
+                )}
               </div>
             </div>
 

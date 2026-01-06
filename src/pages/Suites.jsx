@@ -28,8 +28,7 @@ const TestCaseAccordion = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilter, setActiveFilter] = useState('all');
-
-
+  const [searchTerm, setSearchTerm] = useState('');
   
   /* ======================================================
    * FETCH DATA
@@ -101,8 +100,6 @@ const TestCaseAccordion = () => {
     setWasRerunning(isRerunning);
   }, [isRerunning, progress, rerunTestName, wasRerunning]);
 
-
-
   /* ======================================================
    * HELPERS
    * ====================================================== */
@@ -150,14 +147,104 @@ const TestCaseAccordion = () => {
     return { passed, failed };
   };
 
+  const filterBySearch = (suite) => {
+    if (!searchTerm) return suite.testCases;
+
+    const keyword = searchTerm.toLowerCase();
+
+    return suite.testCases.filter(tc =>
+      suite.parentCode.toLowerCase().includes(keyword) ||
+      tc.name.toLowerCase().includes(keyword) ||
+      tc.testName.toLowerCase().includes(keyword)
+    );
+  };
+
+  /* ======================================================
+   * EXPORT REPORT TO CSV
+   * ====================================================== */
+
+  const exportToCSV = () => {
+    if (!testSuites.length) return;
+
+    // HEADER CSV
+    const headers = [
+      'Suite Code',
+      'Test Case Name',
+      'Test Name',
+      'Status',
+      'Duration',
+      'Last Run At',
+      'Spec Path',
+      'Run ID',
+    ];
+
+    // FLATTEN DATA
+    const rows = testSuites.flatMap((suite) =>
+      filterTestCases(suite.testCases).map((tc) => [
+        suite.parentCode,
+        tc.name,
+        tc.testName,
+        tc.status,
+        tc.duration,
+        tc.lastRunAt,
+        tc.specPath,
+        tc.runId,
+      ])
+    );
+
+    // GABUNG HEADER + ROW
+    const csvContent = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((cell) =>
+            `"${String(cell ?? '').replace(/"/g, '""')}"`
+          )
+          .join(',')
+      )
+      .join('\n');
+
+    // BUAT FILE
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    // AUTO DOWNLOAD
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute(
+      'download',
+      `test-report-${new Date().toISOString().slice(0, 10)}.csv`
+    );
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+
+
   /* ======================================================
    * PAGINATION LOGIC
    * ====================================================== */
 
-  const filteredSuites = testSuites.filter((suite) => {
-    const filteredTestCases = filterTestCases(suite.testCases);
-    return filteredTestCases.length > 0;
-  });
+  const filteredSuites = testSuites
+    .map(suite => {
+      // filter status (passed / failed)
+      const statusFiltered = filterTestCases(suite.testCases);
+
+      // filter search
+      const searchFiltered = filterBySearch({
+        ...suite,
+        testCases: statusFiltered
+      });
+
+      return {
+        ...suite,
+        testCases: searchFiltered
+      };
+    })
+  // hide suite kalau tidak ada testCase tersisa
+  .filter(suite => suite.testCases.length > 0);
+
 
   const totalPages = Math.ceil(filteredSuites.length / ITEMS_PER_PAGE);
 
@@ -179,7 +266,9 @@ const TestCaseAccordion = () => {
           <h1 className="text-3xl font-semibold">Suites</h1>
           <p className="text-gray-500 mt-1">Manage and monitor your test suites</p>
         </div>
-        <button className="bg-black text-white text-sm px-5 py-2.5 rounded-lg hover:bg-gray-800 transition-all flex items-center gap-2">
+        <button 
+          onClick={exportToCSV}
+          className="bg-black text-white text-sm px-5 py-2.5 rounded-lg hover:bg-gray-800 transition-all flex items-center gap-2">
           <img src="/assets/icon/export.svg" alt="Export icon" className="w-5 h-5" />
           Export Report
         </button>
@@ -206,6 +295,11 @@ const TestCaseAccordion = () => {
             <input
               type="text"
               placeholder="Search suites..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value.toUpperCase());
+                setCurrentPage(1); // reset pagination saat search
+              }}
               className="w-full pl-12 pr-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
             />
           </div>
@@ -246,12 +340,18 @@ const TestCaseAccordion = () => {
         </div>
       </div>
 
+      {/* INFO SEARCH */}
+      {searchTerm && (
+        <p className="text-sm text-gray-500 mb-4">
+          Menampilkan hasil pencarian untuk: 
+          <span className="font-medium"> "{searchTerm}"</span>
+        </p>
+      )}
 
       {/* ================= ACCORDION LIST ================= */}
       {paginatedSuites.map((suite) => {
         const { passed, failed } = getFilteredCounts(suite);
 
-        // OPTIONAL:
         // kalau filter aktif & suite tidak punya test yang cocok, hide suite
         if (activeFilter !== 'all' && passed + failed === 0) {
           return null;
@@ -259,7 +359,6 @@ const TestCaseAccordion = () => {
 
         return (
           <div key={suite.id} className="bg-white border rounded-xl mb-4">
-            
             {/* HEADER */}
             <button
               onClick={() => toggleAccordion(suite.id)}
