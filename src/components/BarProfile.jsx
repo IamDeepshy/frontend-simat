@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-
+import Swal from "sweetalert2";
 
 const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -18,16 +18,44 @@ const Navbar = () => {
 
   // Logout
   const handleLogout = async () => {
-    try {
-      await fetch("http://localhost:3000/auth/logout", {
-        method: "POST",
-        credentials: "include",
+      const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "You will be logged out from your account.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: "Yes, logout",
+        cancelButtonText: "Cancel",
+        reverseButtons: true
       });
-
-      navigate("/login");
-    } catch (err) {
-      console.error("Logout failed", err);
-    }
+  
+      if (!result.isConfirmed) return;
+  
+      try {
+        await fetch("http://localhost:3000/auth/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+  
+        await Swal.fire({
+          title: "Logged out!",
+          text: "You have been logged out successfully.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+  
+        navigate("/login");
+      } catch (err) {
+        console.error("Logout failed", err);
+  
+        Swal.fire({
+          title: "Error",
+          text: "Failed to logout. Please try again.",
+          icon: "error",
+        });
+      }
   };
 
   return (

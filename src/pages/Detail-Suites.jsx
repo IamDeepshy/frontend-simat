@@ -84,7 +84,7 @@ export default function DetailSuites() {
             {/* Test Case Header */}
             <div className="flex justify-between items-start mb-6 pb-6 border-b border-gray-200">
               <div>
-                <h5 className="text-xl font-semibold mb-3">{testCases.name} | {testCases.testName}</h5> 
+                <h5 className="text-xl font-semibold mb-3">{testCases.testName}</h5> 
                 <div className="flex items-center gap-4">
                   <span className={`px-8 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(testCases.status)}`}>
                     {testCases.status}
@@ -92,6 +92,10 @@ export default function DetailSuites() {
                   <span className="text-gray-500 flex items-center gap-1">
                     <i className="fa-regular fa-clock"></i>
                     {testCases.duration}
+                  </span>
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <i className="fa-regular fa-file"></i>
+                    {testCases.name}
                   </span>
                 </div>
               </div>

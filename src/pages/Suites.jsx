@@ -124,8 +124,8 @@ const TestCaseAccordion = () => {
   };
 
   const getStatusBadgeClass = (status) => {
-    if (status === 'PASSED') return 'bg-green-100 text-green-700';
-    if (status === 'FAILED') return 'bg-red-100 text-red-700';
+    if (status === 'PASSED') return 'bg-green-100 text-green-700 min-w-[80px]';
+    if (status === 'FAILED') return 'bg-red-100 text-red-700 min-w-[100px]';
     return '';
   };
 
@@ -286,13 +286,13 @@ const TestCaseAccordion = () => {
               {/* BADGE */}
               <div className="flex gap-2">
                 {(activeFilter === 'all' || activeFilter === 'passed') && passed > 0 && (
-                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm min-w-8">
                     {passed} Passed
                   </span>
                 )}
 
                 {(activeFilter === 'all' || activeFilter === 'failed') && failed > 0 && (
-                  <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm">
+                  <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm min-w-20">
                     {failed} Failed
                   </span>
                 )}
@@ -304,18 +304,22 @@ const TestCaseAccordion = () => {
               <table className="w-full border-t">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-sm">Test Name</th>
-                    <th className="px-6 py-3 text-center text-sm">Status</th>
-                    <th className="px-6 py-3 text-center text-sm">Duration</th>
-                    <th className="px-6 py-3 text-center text-sm">Action</th>
+                    <th className="px-6 py-3 text-center text-medium text-gray-600">Code Test Case</th>
+                    <th className="px-6 py-3 text-center text-medium text-gray-600">Test Name</th>
+                    <th className="px-6 py-3 text-center text-medium text-gray-600">Status</th>
+                    <th className="px-6 py-3 text-center text-medium text-gray-600">Task Status</th>
+                    <th className="px-6 py-3 text-center text-medium text-gray-600">Duration</th>
+                    <th className="px-6 py-3 text-center text-medium text-gray-600">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filterTestCases(suite.testCases).map((tc, idx) => (
                     <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-sm">
+                      <td className="px-6 py-4 text-center">
                         <div className="font-medium">{tc.name}</div>
-                        <div className="text-gray-500 text-xs">{tc.testName}</div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="font-medium">{tc.testName}</div>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span
@@ -326,8 +330,11 @@ const TestCaseAccordion = () => {
                           {tc.status}
                         </span>
                       </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="font-medium">status</div>
+                      </td>
                       {/* <td className="px-6 py-4 text-center text-gray-400">-</td> */}
-                      <td className="px-6 py-4 text-center text-sm">
+                      <td className="px-6 py-4 text-center font-medium text-sm text-gray-500">
                         {tc.duration}
                       </td>
                       <td className="px-6 py-4">

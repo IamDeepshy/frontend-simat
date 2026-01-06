@@ -130,7 +130,7 @@ export default function Dashboard() {
                 className="bg-white rounded-xl shadow-sm p-4 py-6 flex items-center gap-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200"
               >
                 <div className={`w-2 h-2 rounded-full ${passed === total ? 'bg-green-500' : failed > 0 ? 'bg-red-500' : 'bg-yellow-500'}`}></div>
-                <h6 className="font-medium flex-1">{suite.id}</h6>
+                <h6 className="font-medium flex-1">{suite.parentCode}</h6>
                 <span className="text-sm text-teal-600">{passed}/{total}</span>
                 <div className="w-24 bg-gray-200 rounded-full h-2">
                   <div 
