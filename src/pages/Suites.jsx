@@ -49,6 +49,7 @@ const TestCaseAccordion = () => {
           parentCode: suite.parentCode,
           totalTests: suite.totalTests,
           testCases: suite.testCases.map(tc => ({
+            id: tc.id,
             name: tc.suiteName,
             testName: tc.testName,
             status: normalizeStatus(tc.status),
@@ -168,27 +169,19 @@ const TestCaseAccordion = () => {
 
     // HEADER CSV
     const headers = [
-      'Suite Code',
-      'Test Case Name',
+      'Code Test Case',
       'Test Name',
       'Status',
       'Duration',
-      'Last Run At',
-      'Spec Path',
-      'Run ID',
     ];
 
     // FLATTEN DATA
     const rows = testSuites.flatMap((suite) =>
       filterTestCases(suite.testCases).map((tc) => [
         suite.parentCode,
-        tc.name,
         tc.testName,
         tc.status,
         tc.duration,
-        tc.lastRunAt,
-        tc.specPath,
-        tc.runId,
       ])
     );
 

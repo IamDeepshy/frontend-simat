@@ -38,14 +38,6 @@ const Navbar = () => {
           credentials: "include",
         });
   
-        await Swal.fire({
-          title: "Logged out!",
-          text: "You have been logged out successfully.",
-          icon: "success",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-  
         navigate("/login");
       } catch (err) {
         console.error("Logout failed", err);

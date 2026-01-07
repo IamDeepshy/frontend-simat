@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Swal from "sweetalert2";
 
-const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) => {
+const CreateDefectModal = ({ isOpen, onClose, testCaseName, testSpecId }) => {
   const [formData, setFormData] = useState({
     defectTitle: '',
     assignedTo: '',
     priority: '',
-    status: 'todo',
     additionalNotes: ''
   });
 
@@ -17,24 +17,14 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
   // Refs untuk detect click outside
   const assigneeRef = useRef(null);
   const priorityRef = useRef(null);
-  const statusRef = useRef(null);
 
   const [developers, setDevelopers] = useState([]);
-
-
 
   const priorities = [
     { value: 'high', label: 'High' },
     { value: 'medium', label: 'Medium' },
     { value: 'low', label: 'Low' }
   ];
-
-  const statuses = [
-    { value: 'todo', label: 'To Do' },
-    { value: 'inProgress', label: 'In Progress' },
-    { value: 'done', label: 'Done' }
-  ];
-
 
   // Ambil data role developer
   useEffect(() => {
@@ -66,9 +56,6 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
       if (priorityRef.current && !priorityRef.current.contains(event.target)) {
         if (openDropdown === 'priority') setOpenDropdown(null);
       }
-      if (statusRef.current && !statusRef.current.contains(event.target)) {
-        if (openDropdown === 'status') setOpenDropdown(null);
-      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -85,11 +72,6 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
   const getPriorityLabel = () => {
     const priority = priorities.find(p => p.value === formData.priority);
     return priority ? priority.label : 'Select priority';
-  };
-
-  const getStatusLabel = () => {
-    const status = statuses.find(s => s.value === formData.status);
-    return status ? status.label : 'Select status';
   };
 
   // Handle dropdown selection
@@ -145,29 +127,99 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (validateForm()) {
-      // Create defect data
-      const defectData = {
-        id: `defect-${Date.now()}`,
+    // Pastikan testSpecId ada (kalau kosong, backend pasti gagal)
+    if (!testSpecId) {
+      setErrors((prev) => ({
+        ...prev,
+        submit: "Id test spec kosong.",
+      }));
+      return;
+    }
+
+    if (!validateForm()) return;
+
+    const devUsername =
+        developers.find((dev) => dev.id === formData.assignedTo)?.username || "";
+
+    try {
+      const priority =
+        formData.priority === "high"
+          ? "High"
+          : formData.priority === "medium"
+          ? "Medium"
+          : "Low";
+
+      const status = "To Do";
+
+      // Payload ke backend 
+      const payload = {
+        testSpecId: Number(testSpecId),
         title: formData.defectTitle,
-        description: formData.additionalNotes || `Defect from test: ${testCaseName}`,
-        assignee: developers.find(dev => dev.id === formData.assignedTo)?.name || '',
-        priority: formData.priority,
-        status: formData.status,
-        testCase: testCaseName,
-        createdAt: new Date().toISOString()
+        assignDev: devUsername,
+        priority,
+        status: "To Do",
+        notes:
+          formData.additionalNotes?.trim() || "",
       };
 
-      // Call parent callback
-      if (onCreateDefect) {
-        onCreateDefect(defectData);
-      }
+      // Call API backend
+      const res = await fetch("http://localhost:3000/api/defects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
 
-      // Reset form and close
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Gagal membuat defect");
+
       handleClose();
+
+      await Swal.fire({
+          title: "Create defect succesful",
+          icon: "success",
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: true,
+          html: `
+            <p class="text-sm text-gray-500">
+              Defect report from test: <b>${testCaseName}</b><br/>
+              successfully created and assigned to <b>${devUsername}</b>.
+            </p>
+          `,
+          confirmButtonText: 'OK',
+          buttonsStyling: false,
+          customClass: {
+            confirmButton:
+              'bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800',
+          },
+      });
+
+    } catch (err) {
+      console.error(err);
+      setErrors((prev) => ({ ...prev, submit: err.message }));
+      
+      await Swal.fire({
+        title: "Create defect failed",
+        icon: "error",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: true,
+        html: `
+          <p class="text-sm text-gray-500">
+            ${err.message}
+          </p>
+        `,
+        confirmButtonText: "OK",
+                  buttonsStyling: false,
+        customClass: {
+          confirmButton:
+            'bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800',
+        },
+      });
     }
   };
 
@@ -176,7 +228,6 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
       defectTitle: '',
       assignedTo: '',
       priority: '',
-      status: 'todo',
       additionalNotes: ''
     });
     setErrors({});
@@ -293,101 +344,54 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, onCreateDefect }) =>
               )}
             </div>
 
-            {/* Priority and Status - Two Columns - CUSTOM DROPDOWNS */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              {/* Priority - CUSTOM DROPDOWN */}
-              <div>
-                <label className="block text-base font-medium text-gray-700 mb-2">
-                  Priority <span className="text-red-500">*</span>
-                </label>
-                <div ref={priorityRef} className="relative">
-                  {/* Dropdown Button */}
-                  <button
-                    type="button"
-                    onClick={() => setOpenDropdown(openDropdown === 'priority' ? null : 'priority')}
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-left flex items-center justify-between ${
-                      errors.priority ? 'border-red-500' : 'border-gray-300'
-                    } ${!formData.priority ? 'text-gray-400' : 'text-gray-900'}`}
+            {/* Priority */}
+            <div className="mb-4">
+              <label className="block text-base font-medium text-gray-700 mb-2">
+                Priority <span className="text-red-500">*</span>
+              </label>
+              <div ref={priorityRef} className="relative">
+                {/* Dropdown Button */}
+                <button
+                  type="button"
+                  onClick={() => setOpenDropdown(openDropdown === 'priority' ? null : 'priority')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-left flex items-center justify-between ${
+                    errors.priority ? 'border-red-500' : 'border-gray-300'
+                  } ${!formData.priority ? 'text-gray-400' : 'text-gray-900'}`}
+                >
+                  <span>{getPriorityLabel()}</span>
+                  {/* Chevron Icon */}
+                  <svg 
+                    className={`w-4 h-4 text-gray-400 transition-transform ${openDropdown === 'priority' ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
                   >
-                    <span>{getPriorityLabel()}</span>
-                    {/* Chevron Icon */}
-                    <svg 
-                      className={`w-4 h-4 text-gray-400 transition-transform ${openDropdown === 'priority' ? 'rotate-180' : ''}`}
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-                  {/* Dropdown Options */}
-                  {openDropdown === 'priority' && (
-                    <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                      {priorities.map((priority, index) => (
-                        <button
-                          key={priority.value}
-                          type="button"
-                          onClick={() => handleDropdownSelect('priority', priority.value)}
-                          className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
-                            formData.priority === priority.value ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-900'
-                          } ${index === 0 ? 'rounded-t-xl' : ''} ${index === priorities.length - 1 ? 'rounded-b-xl' : ''}`}
-                        >
-                          {priority.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {errors.priority && (
-                  <p className="text-red-500 text-xs mt-1">{errors.priority}</p>
+                {/* Dropdown Options */}
+                {openDropdown === 'priority' && (
+                  <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    {priorities.map((priority, index) => (
+                      <button
+                        key={priority.value}
+                        type="button"
+                        onClick={() => handleDropdownSelect('priority', priority.value)}
+                        className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                          formData.priority === priority.value ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-900'
+                        } ${index === 0 ? 'rounded-t-xl' : ''} ${index === priorities.length - 1 ? 'rounded-b-xl' : ''}`}
+                      >
+                        {priority.label}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
-
-              {/* Status - CUSTOM DROPDOWN */}
-              <div>
-                <label className="block text-base font-medium text-gray-700 mb-2">
-                  Status
-                </label>
-                <div ref={statusRef} className="relative">
-                  {/* Dropdown Button */}
-                  <button
-                    type="button"
-                    onClick={() => setOpenDropdown(openDropdown === 'status' ? null : 'status')}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-left flex items-center justify-between text-gray-900"
-                  >
-                    <span>{getStatusLabel()}</span>
-                    {/* Chevron Icon */}
-                    <svg 
-                      className={`w-4 h-4 text-gray-400 transition-transform ${openDropdown === 'status' ? 'rotate-180' : ''}`}
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {/* Dropdown Options */}
-                  {openDropdown === 'status' && (
-                    <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                      {statuses.map((status, index) => (
-                        <button
-                          key={status.value}
-                          type="button"
-                          onClick={() => handleDropdownSelect('status', status.value)}
-                          className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
-                            formData.status === status.value ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-900'
-                          } ${index === 0 ? 'rounded-t-xl' : ''} ${index === statuses.length - 1 ? 'rounded-b-xl' : ''}`}
-                        >
-                          {status.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+              {errors.priority && (
+                <p className="text-red-500 text-xs mt-1">{errors.priority}</p>
+              )}
+            </div> 
 
             {/* Additional Notes */}
             <div className="mb-4">

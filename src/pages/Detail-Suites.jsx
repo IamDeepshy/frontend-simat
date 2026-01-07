@@ -22,6 +22,7 @@ export default function DetailSuites() {
   const { state } = useLocation();
   const { testCases } = state;
 
+
   /* ======================================================
    * SWEETALERT – RERUN FINISHED
    * ====================================================== */
@@ -137,6 +138,8 @@ export default function DetailSuites() {
                       className="fixed inset-0 bg-gray-900/50 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
                       isOpen={isModalOpen}
                       onClose={() => setIsModalOpen(false)}
+                      testCaseName={testCases.testName}   
+                      testSpecId={testCases.id}           
                     />
                   </>
                 )}

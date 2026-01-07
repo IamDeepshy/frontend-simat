@@ -95,7 +95,7 @@ export default function Login() {
                   htmlFor="username" 
                   className="block text-sm font-semibold text-[#333333] mb-2"
                 >
-                  username
+                  Username
                 </label>
                 <input
                   type="text"
@@ -114,7 +114,7 @@ export default function Login() {
                   htmlFor="password" 
                   className="block text-sm font-semibold text-[#333333] mb-2"
                 >
-                  password
+                  Password
                 </label>
                 <div className="relative">
                   <input
