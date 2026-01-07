@@ -14,10 +14,14 @@ export function useRerunTest() {
       setStatus("running");
 
       // 1️⃣ trigger rerun
-      const res = await fetch("http://localhost:3000/api/jenkins/rerun/spec", {
+      const res = await fetch("http://localhost:3000/api/jenkins/rerun/spec", {    
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ spec: testCase.specPath }),
+        body: JSON.stringify({
+          scope: "SPEC",
+          target: testCase.specPath,
+        }),
+
       });
 
       const { queueUrl } = await res.json();

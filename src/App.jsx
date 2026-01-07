@@ -10,6 +10,7 @@ import RequireAuth from "./components/RequireAuth";
 import RequireGuest from "./components/RequireGuest";
 import RequireRole from "./components/RequireRole";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
 
 export default function App() {
   return (
@@ -52,6 +53,11 @@ export default function App() {
           <Route
             path="/detail-suites"
             element={<DetailSuites />}
+          />
+
+          <Route
+            path="/profile"
+            element={<Profile />}
           />
         </Route>
       </Route>
