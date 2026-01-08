@@ -63,6 +63,60 @@ export default function DetailSuites() {
     return "";
   };
 
+  /* ======================================================
+   * DEFECT STATE
+   * ====================================================== */
+  const [defectDetails, setDefectDetails] = useState(null);
+
+  const fetchActiveDefect = async () => {
+    if (!testCases || testCases.status === "PASSED") {
+      setDefectDetails(null);
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `http://localhost:3000/api/defects/active?testSpecId=${testCases.id}`
+      );
+      const json = await res.json().catch(() => ({}));
+      setDefectDetails(json?.data || null);
+    } catch (e) {
+      setDefectDetails(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveDefect();
+  }, [testCases]);
+
+  // penting: refetch setelah modal close
+  useEffect(() => {
+    if (!isModalOpen) fetchActiveDefect();
+  }, [isModalOpen]);
+
+  const getPriorityClass = (priority) => {
+    switch(priority) {
+      case 'High': return 'bg-[#FFCDCF] text-[#BD0108]';
+      case 'Medium': return 'bg-[#FFEAD2] text-[#FF6200]';
+      case 'Low': return 'bg-[#EFEFEF] text-[#757373]';
+      default: return 'bg-gray-400 text-white';
+    }
+  };
+  
+  const getTaskStatusClass = (priority) => {
+    switch(priority) {
+      case 'To Do': return 'bg-[#B9B9B9] text-[#323232]';
+      case 'In Progress': return 'bg-[#FFFAC6] text-[#CC7A00]';
+      case 'Done': return 'bg-[#E5FFE5] text-[#006600]';
+      default: return 'bg-gray-400 text-white';
+    }
+  };
+
+  // disable create defect
+  const disableCreateDefect =
+    defectDetails &&
+    (defectDetails.status === "To Do" || defectDetails.status === "In Progress");
+
 
   return (
     <div className="flex-grow ml-[260px] p-8 min-h-screen overflow-y-auto">
@@ -99,7 +153,7 @@ export default function DetailSuites() {
                     {testCases.name}
                   </span>
 
-                 <span className="text-gray-500 flex items-center gap-1 text-sm">
+                 <span className="text-gray-500 flex items-center gap-1">
                     <i className="fa-solid fa-flag-checkered"></i>
                     {testCases.lastRunAt
                       ? new Date(testCases.lastRunAt).toLocaleString('id-ID', {
@@ -126,12 +180,28 @@ export default function DetailSuites() {
 
                 {testCases.status !== "PASSED" && (
                   <>
-                    <button
-                      onClick={() => setIsModalOpen(true)}
-                      className="px-8 py-2 bg-black text-white rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                      <img src="/assets/icon/defect.svg" alt="Defect icon" className="w-4 h-4" />
-                      Create Defect
-                    </button>
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    disabled={disableCreateDefect}
+                    className={`px-8 py-2 rounded-lg flex items-center gap-2 transition-all
+                      ${disableCreateDefect
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-black text-white hover:bg-gray-800 hover:shadow-md hover:-translate-y-0.5"}
+                    `}
+                    title={
+                      disableCreateDefect
+                        ? "Defect masih aktif dan sedang dihandle"
+                        : "Create Defect"
+                    }
+                  >
+                    <img
+                      src="/assets/icon/defect.svg"
+                      alt="Defect icon"
+                      className={`w-4 h-4 ${disableCreateDefect ? "opacity-50" : ""}`}
+                    />
+                    Create Defect
+                  </button>
+
 
                     <CreateDefectModal
                       transition
@@ -145,6 +215,59 @@ export default function DetailSuites() {
                 )}
               </div>
             </div>
+            
+            {/* Details */}
+            {testCases.status !== "PASSED" && defectDetails && (
+            // <div className=" items-start mb-6 ">
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <h5 className="text-lg font-semibold mb-4">Details</h5>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 ">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-3.5">Assignee</p>
+                    <div className="flex items-center gap-2 ">
+                      <i className="fa-solid fa-user text-gray-400 text-sm"></i>
+                      <span className="text-sm text-gray-900 font-medium">
+                        {defectDetails?.assignDev || "-"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-2">Priority</p>
+                    <span className={`inline-block px-5 py-1.5 rounded-lg text-xs font-semibold uppercase ${getPriorityClass(defectDetails?.priority)}`}>
+                      {defectDetails?.priority || "None"}
+                    </span>
+
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-2">Task Status</p>
+                    <span className={`inline-block px-5 py-1.5 rounded-full text-xs font-semibold ${getTaskStatusClass(defectDetails?.status)}`}>
+                      {defectDetails?.status || "To Do"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-3.5">Created At</p>
+                    <div className="flex items-center gap-2">
+                      <i className="fa-regular fa-calendar text-gray-400 text-sm"></i>
+                      <span className="text-sm text-gray-900 font-medium">
+                        {defectDetails?.created_at
+                          ? new Date(defectDetails.created_at).toLocaleString("id-ID", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "-"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {testCases.status === "PASSED" ? (
               <div className="bg-green-100 -mx-6 px-6 py-8 -mb-6 rounded-b-2xl justify-center flex flex-col items-center text-center">

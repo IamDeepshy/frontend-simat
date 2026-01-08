@@ -39,7 +39,7 @@ const ChangePassword = () => {
 
             const data = await res.json();
 
-            // 🔴 CURRENT PASSWORD SALAH
+            // CURRENT PASSWORD SALAH
             if (res.status === 401) {
             return Swal.fire({
                 icon: "error",
@@ -48,7 +48,7 @@ const ChangePassword = () => {
             });
             }
 
-            // 🔴 VALIDASI LAIN DARI BACKEND
+            // VALIDASI LAIN DARI BACKEND
             if (!res.ok) {
             return Swal.fire({
                 icon: "error",
@@ -57,7 +57,7 @@ const ChangePassword = () => {
             });
             }
 
-            // ✅ SUCCESS
+            // SUCCESS
             await Swal.fire({
             icon: "success",
             title: "Berhasil",

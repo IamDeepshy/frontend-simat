@@ -377,13 +377,13 @@ const TestCaseAccordion = () => {
               {/* BADGE */}
               <div className="flex gap-2">
                 {(activeFilter === 'all' || activeFilter === 'passed') && passed > 0 && (
-                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm min-w-8">
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium min-w-8">
                     {passed} Passed
                   </span>
                 )}
 
                 {(activeFilter === 'all' || activeFilter === 'failed') && failed > 0 && (
-                  <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm min-w-20">
+                  <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium min-w-20">
                     {failed} Failed
                   </span>
                 )}

@@ -28,61 +28,12 @@ export default function TaskManagement() {
 
   const [openDropdown, setOpenDropdown] = useState(null);
 
-  const [tasks, setTasks] = useState({
-    todo: [
-      {
-        id: 'task-1',
-        title: 'Validate Table Header Wording',
-        description: 'Table header showing incorrect number of columns',
-        priority: 'high',
-        assignee: 'Anang Programmer'
-      },
-      {
-        id: 'task-2',
-        title: 'Fix Login Button Alignment',
-        description: 'Login button is not centered properly on mobile view',
-        priority: 'medium',
-        assignee: 'Ani Programmer'
-      }
-    ],
-    inProgress: [
-      {
-        id: 'task-3',
-        title: 'Update Dashboard Charts',
-        description: 'Charts are not displaying correct data for last month',
-        priority: 'low',
-        assignee: 'Ani Programmer'
-      },
-      {
-        id: 'task-4',
-        title: 'API Response Time Optimization',
-        description: 'API taking too long to respond, need to optimize queries',
-        priority: 'high',
-        assignee: 'Ani Programmer'
-      }
-    ],
-    done: [
-      {
-        id: 'task-5',
-        title: 'Setup CI/CD Pipeline',
-        description: 'Configure automated testing and deployment pipeline',
-        priority: 'high',
-        assignee: 'Anang Programmer'
-      },
-      {
-        id: 'task-6',
-        title: 'Documentation Update',
-        description: 'Update API documentation with new endpoints',
-        priority: 'low',
-        assignee: 'Ani Programmer'
-      }
-    ]
-  });
+
 
   const [activeId, setActiveId] = useState(null);
 
-  // state role user
-  const [role, setRole] = useState(null);
+  // state user
+  const [user, setUser] = useState(null);
 
   // ambil role dari backend
   useEffect(() => {
@@ -94,7 +45,7 @@ export default function TaskManagement() {
 
         if (res.ok) {
           const data = await res.json();
-          setRole(data.role); // "qa" atau "developer"
+          setUser(data); // { username, role }
         }
       } catch (err) {
         console.error("Error fetch /auth/me di TaskManagement:", err);
@@ -103,6 +54,76 @@ export default function TaskManagement() {
 
     fetchUser();
   }, []);
+
+  const role = user?.role;
+  const username = user?.username;
+
+  const [developers, setDevelopers] = useState([]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.role === "dev") return;
+
+    const fetchDevelopers = async () => {
+      const res = await fetch("http://localhost:3000/api/developers", {
+        credentials: "include",
+      });
+      if (res.ok) setDevelopers(await res.json());
+    };
+
+    fetchDevelopers();
+  }, [user]);
+
+  const [tasksByColumn, setTasksByColumn] = useState({
+    todo: [],
+    inProgress: [],
+    done: [],
+  });
+
+  useEffect(() => {
+  if (!user) return;
+
+  const fetchTasks = async () => {
+      const params = new URLSearchParams({
+        status: filters.status,
+        priority: filters.priority,
+      });
+
+      // QA boleh filter assignee
+      if (user.role !== "dev") {
+        params.set("assignee", filters.assignee);
+      }
+
+      const res = await fetch(
+        `http://localhost:3000/api/task-management?${params.toString()}`,
+        { credentials: "include" }
+      );
+
+      if (!res.ok) return;
+
+      const list = await res.json();
+
+      const mapStatus = (s) => {
+        const v = (s || "").toLowerCase().trim();
+        if (v === "todo" || v === "to do") return "todo";
+        if (v === "inprogress" || v === "in progress") return "inProgress";
+        if (v === "done") return "done";
+        return null;
+      };
+
+      const grouped = { todo: [], inProgress: [], done: [] };
+      for (const t of list) {
+        const key = mapStatus(t.status);
+        if (key) grouped[key].push(t);
+      }
+      setTasksByColumn(grouped);
+
+    };
+
+    fetchTasks();
+  }, [user, filters.status, filters.priority, filters.assignee]);
+
+
 
   // Configure sensors for drag detection
   const sensors = useSensors(
@@ -118,20 +139,19 @@ export default function TaskManagement() {
 
   const getPriorityClass = (priority) => {
     switch(priority) {
-      case 'high': return 'bg-red-500 text-white';
-      case 'medium': return 'bg-orange-500 text-white';
-      case 'low': return 'bg-gray-400 text-white';
+      case 'High': return 'bg-[#FFCDCF] text-[#BD0108]';
+      case 'Medium': return 'bg-[#FFEAD2] text-[#FF6200]';
+      case 'Low': return 'bg-[#EFEFEF] text-[#757373]';
       default: return 'bg-gray-400 text-white';
     }
   };
 
   // Find which container a task belongs to
   const findContainer = (id) => {
-    if (id in tasks) {
-      return id;
-    }
-    return Object.keys(tasks).find((key) =>
-      tasks[key].some((task) => task.id === id)
+    if (id in tasksByColumn) return id;
+
+    return Object.keys(tasksByColumn).find((key) =>
+      tasksByColumn[key].some((task) => task.id === id)
     );
   };
 
@@ -152,7 +172,7 @@ export default function TaskManagement() {
       return;
     }
 
-    setTasks((prev) => {
+    setTasksByColumn((prev) => {
       const activeItems = prev[activeContainer];
       const overItems = prev[overContainer];
 
@@ -196,11 +216,11 @@ export default function TaskManagement() {
       return;
     }
 
-    const activeIndex = tasks[activeContainer].findIndex((task) => task.id === active.id);
-    const overIndex = tasks[overContainer].findIndex((task) => task.id === over.id);
+    const activeIndex = tasksByColumn[activeContainer].findIndex((task) => task.id === active.id);
+    const overIndex = tasksByColumn[overContainer].findIndex((task) => task.id === over.id);
 
     if (activeIndex !== overIndex) {
-      setTasks((prev) => ({
+      setTasksByColumn((prev) => ({
         ...prev,
         [overContainer]: arrayMove(prev[overContainer], activeIndex, overIndex),
       }));
@@ -217,7 +237,7 @@ export default function TaskManagement() {
       transform,
       transition,
       isDragging,
-    } = useSortable({ id: task.id });
+    } = useSortable({ id: String(task.id) });
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -234,8 +254,8 @@ export default function TaskManagement() {
           isDragging ? 'opacity-50' : ''
         }`}
       >
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <span className={`px-2 py-1 rounded text-xs font-semibold uppercase ${getPriorityClass(task.priority)}`}>
+        <div className="flex items-start justify-between gap-2 mb-3.5">
+          <span className={`px-3 py-1 rounded text-sm font-semibold uppercase ${getPriorityClass(task.priority)}`}>
             {task.priority}
           </span>
           <div className="flex items-center gap-1 text-gray-400">
@@ -245,20 +265,20 @@ export default function TaskManagement() {
             </svg>
           </div>
         </div>
-        <h6 className="font-semibold text-sm mb-2">{task.title}</h6>
-        <p className="text-xs text-gray-600 mb-3">{task.description}</p>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <h6 className="font-semibold mb-2">{task.title}</h6>
+        <p className="text-sm font-medium text-gray-600 mb-3">{task.notes}</p>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
           {/* User Icon - SVG */}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
-          <span>{task.assignee}</span>
+          <span>{task.assignDev}</span>
         </div>
       </div>
     );
   };
 
-  const Column = ({ columnId, title, tasks: columnTasks, bgColor }) => {
+  const Column = ({ columnId, title, tasks: columnTasks, bgColor, stColor }) => {
     const { setNodeRef, isOver } = useDroppable({
       id: columnId,
     });
@@ -267,12 +287,12 @@ export default function TaskManagement() {
       <div className={`${bgColor} rounded-xl p-4 ring-1 ring-gray-200`}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-semibold text-lg">{title}</h3>
-          <span className="bg-white px-3 py-1 rounded-full text-sm font-medium">
+          <span className={`${stColor} px-3 py-1 rounded-lg text-sm font-medium ring-1 ring-black/5`}>
             {columnTasks.length}
           </span>
         </div>
         <SortableContext
-          items={columnTasks.map((task) => task.id)}
+          items={columnTasks.map((task) => String(task.id) )}
           strategy={verticalListSortingStrategy}
         >
           <div 
@@ -373,23 +393,22 @@ export default function TaskManagement() {
 
   // Get the active task for drag overlay
   const activeTask = activeId
-    ? Object.values(tasks)
+    ? Object.values(tasksByColumn)
         .flat()
-        .find((task) => task.id === activeId)
+        .find((task) => String(task.id) === String(activeId))
     : null;
 
   // Options for dropdowns
   const statusOptions = [
     { value: 'all', label: 'All Status' },
-    { value: 'todo', label: 'To Do' },
-    { value: 'inProgress', label: 'In Progress' },
-    { value: 'done', label: 'Done' }
+    { value: 'To Do', label: 'To Do' },
+    { value: 'In Progress', label: 'In Progress' },
+    { value: 'Done', label: 'Done' }
   ];
 
   const assigneeOptions = [
-    { value: 'all', label: 'All Assigneed' },
-    { value: 'anang', label: 'Anang Programmer' },
-    { value: 'ani', label: 'Ani Programmer' }
+    { value: "all", label: "All Assignee" },
+      ...developers.map((d) => ({ value: d.username, label: d.username })),
   ];
 
   const priorityOptions = [
@@ -428,7 +447,7 @@ export default function TaskManagement() {
         />
 
         {/* Assignee dropdown HANYA tampil kalau bukan developer */}
-        {role !== "dev" && (
+        {user?.role !== "dev" && ( 
           <CustomDropdown
             dropdownKey="assignee"
             filterType="assignee"
@@ -467,7 +486,7 @@ export default function TaskManagement() {
 
 
       {/* tip hanya tampil kalau role developer */}
-      {role == "dev" && (
+      {user?.role === "dev" && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-3">
           {/* Info Circle Icon - SVG */}
           <svg 
@@ -485,7 +504,7 @@ export default function TaskManagement() {
 
       {/* Kanban Board with Drag & Drop */}
       <DndContext
-        sensors={role === "dev" ? sensors : []}
+        sensors={user?.role === "dev" ? sensors : []}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -495,20 +514,23 @@ export default function TaskManagement() {
           <Column
             columnId="todo"
             title="To Do"
-            tasks={tasks.todo}
-            bgColor="bg-gray-100"
+            tasks={tasksByColumn.todo}
+            stColor="bg-[#FFFFFF]"
+            bgColor="bg-[#F5F5F5]"
           />
           <Column
             columnId="inProgress"
             title="In Progress"
-            tasks={tasks.inProgress}
-            bgColor="bg-[#FDFFE3]"
+            tasks={tasksByColumn.inProgress}
+            stColor="bg-[#FDFFDB]"
+            bgColor="bg-[#F5F5F5]"
           />
           <Column
             columnId="done"
             title="Done"
-            tasks={tasks.done}
-            bgColor="bg-[#E9FFE9]"
+            tasks={tasksByColumn.done}
+            stColor="bg-[#E5FFE8]"
+            bgColor="bg-[#F5F5F5]"
           />
         </div>
 

@@ -167,7 +167,7 @@ const ChartSection = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
       {/* Bar Chart Card */}
-      <div className="bg-white rounded-2xl shadow-sm p-6">
+      <div className="bg-white rounded-2xl shadow-[0_2px_7px_-3px_rgba(0,0,0,0.15)] p-6">
         <h4 className="font-semibold text-lg mb-4">Test Summary by Duration</h4>
         <div className="h-[300px]">
           <Bar data={barData} options={barOptions} />
@@ -175,7 +175,7 @@ const ChartSection = () => {
       </div>
 
       {/* Doughnut Chart Card */}
-      <div className="bg-white rounded-2xl shadow-sm p-6">
+      <div className="bg-white rounded-2xl shadow-[0_2px_7px_-3px_rgba(0,0,0,0.15)] p-6">
         <h4 className="font-semibold text-lg mb-4">Test Distribution</h4>
         <div className="h-[300px] flex flex-col items-center justify-center">
           <div className="w-full max-w-[250px] h-[250px] relative">

@@ -5,7 +5,7 @@ import { Bar } from "react-chartjs-2";
 
 export default function MainLayout() {
   return (
-    <div className="flex min-h-screen bg-[#f9f4f6]">
+    <div className="flex min-h-screen bg-[#f9fafb]">
       {/* Sidebar kiri */}
       <Sidebar />
 

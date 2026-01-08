@@ -68,9 +68,22 @@ export default function Sidebar() {
       console.error("Logout failed", err);
 
       Swal.fire({
-        title: "Error",
-        text: "Failed to logout. Please try again.",
-        icon: "error",
+        icon: 'error',
+        title: 'Error',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: true,
+        html: `
+          <p class="text-sm text-gray-500">
+            Failed to logout. Please try again.
+          </p>
+        `,
+        confirmButtonText: 'OK',
+        buttonsStyling: false,
+        customClass: {
+          confirmButton:
+            'bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800',
+        },
       });
     }
   };

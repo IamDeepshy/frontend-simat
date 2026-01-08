@@ -103,7 +103,7 @@ export default function Dashboard() {
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-2xl shadow-sm p-6 flex justify-between items-center hover:shadow-md hover:-translate-y-1 transition-all duration-200"
+            className="bg-white rounded-2xl shadow-[0_2px_7px_-3px_rgba(0,0,0,0.15)] p-6 flex justify-between items-center hover:shadow-md hover:-translate-y-1 transition-all duration-200"
           >
             <div>
               <p className="text-gray-500 text-sm mb-1">{stat.title}</p>
@@ -120,7 +120,7 @@ export default function Dashboard() {
       <ChartSection />
 
       {/* Suites Section */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 mt-4">
+      <div className="bg-white rounded-2xl shadow-[0_2px_7px_-3px_rgba(0,0,0,0.15)] p-6 mt-4">
         <h4 className="font-semibold text-lg mb-4">Suites</h4>
         <div className="space-y-5">
           {testSuites.slice(0, 5).map((suite, index) => {
