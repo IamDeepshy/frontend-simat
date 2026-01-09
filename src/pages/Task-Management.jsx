@@ -245,6 +245,7 @@ export default function TaskManagement() {
     };
 
     return (
+      // task card
       <div
         ref={setNodeRef}
         style={style}
@@ -265,8 +266,13 @@ export default function TaskManagement() {
             </svg>
           </div>
         </div>
+        {task.suiteName && (
+          <span className="inline-block text-xs font-medium px-2 py-1 rounded bg-gray-100 text-gray-700 mb-2 truncate max-w-full">
+            {task.suiteName}
+          </span>
+        )}
         <h6 className="font-semibold mb-2">{task.title}</h6>
-        <p className="text-sm font-medium text-gray-600 mb-3">{task.notes}</p>
+        <p className="text-sm font-medium text-gray-600 mb-3 break-words whitespace-pre-wrap">{task.notes}</p>
         <div className="flex items-center gap-2 text-sm text-gray-500">
           {/* User Icon - SVG */}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -549,6 +555,11 @@ export default function TaskManagement() {
                   </svg>
                 </div>
               </div>
+              {task.suiteName && (
+                <span className="inline-block text-xs font-medium px-2 py-1 rounded bg-gray-100 text-gray-700 mb-2 truncate max-w-full">
+                {task.suiteName}
+                </span>
+              )}
               <h6 className="font-semibold text-sm mb-2">{activeTask.title}</h6>
               <p className="text-xs text-gray-600 mb-3">{activeTask.description}</p>
               <div className="flex items-center gap-2 text-xs text-gray-500">

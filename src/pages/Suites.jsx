@@ -52,6 +52,9 @@ const TestCaseAccordion = () => {
           testName: tc.testName,
           status: normalizeStatus(tc.status),
           duration: formatDuration(tc.durationMs),
+          taskStatus: tc.taskStatus,
+          taskAssignDev: tc.taskAssignDev,
+          taskPriority: tc.taskPriority,
           errorMessage: tc.errorMessage,
           screenshotUrl: tc.screenshotUrl,
           specPath: tc.specPath,
@@ -129,6 +132,15 @@ const TestCaseAccordion = () => {
     if (status === 'PASSED') return 'bg-green-100 text-green-700 min-w-[80px]';
     if (status === 'FAILED') return 'bg-red-100 text-red-700 min-w-[100px]';
     return '';
+  };
+
+  const getTaskStatusClass = (status) => {
+    switch(status) {
+      case 'To Do': return 'bg-[#B9B9B9] text-[#323232]';
+      case 'In Progress': return 'bg-[#FFFAC6] text-[#CC7A00]';
+      case 'Done': return 'bg-[#E5FFE5] text-[#006600]';
+      default: return '';
+    }
   };
 
   const filterTestCases = (testCases) => {
@@ -426,7 +438,17 @@ const TestCaseAccordion = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <div className="font-medium">status</div>
+                        {tc.status === "PASSED" ? (
+                          <span className="text-gray-400"></span>  // atau "" kalau mau bener-bener kosong
+                        ) : (
+                          <span
+                            className={`inline-block px-6 py-0.5 rounded-full text-sm font-medium ${getTaskStatusClass(
+                              tc.taskStatus
+                            )}`}
+                          >
+                            {tc.taskStatus || ""}
+                          </span>
+                        )}
                       </td>
                       {/* <td className="px-6 py-4 text-center text-gray-400">-</td> */}
                       <td className="px-6 py-4 text-center font-medium text-sm text-gray-500">

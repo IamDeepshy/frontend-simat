@@ -20,17 +20,32 @@ export default function DetailSuites() {
   const [wasRerunning, setWasRerunning] = useState(false);
 
   const { state } = useLocation();
-  const { testCaseId } = state;
+  const testCaseId = state?.testCaseId;
 
   /* ======================================================
    * FETCH TEST CASE DETAILS
    * ====================================================== */
 
   const [testCase, setTestCase] = useState(null);
-  const [setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+ 
+  const normalizeStatus = (status) => {
+    if (status === 'PASSED') return 'PASSED';
+    if (status === 'FAILED' || status === 'BROKEN') return 'FAILED';
+    return status;
+  };
+
+  const formatDuration = (ms) => {
+    if (!ms) return '-';
+    const sec = Math.floor(ms / 1000);
+    const min = Math.floor(sec / 60);
+    return `${min}m ${sec % 60}s`;
+  };
 
   const fetchTestCase = async () => {
     try {
+      setLoading(true); // mulai loading
+
       const res = await fetch(
         "http://localhost:3000/api/grouped-testcases",
         { credentials: "include" }
@@ -43,23 +58,25 @@ export default function DetailSuites() {
         if (found) {
           setTestCase({
             id: found.id,
-            name: found.name,
+            name: found.suiteName,
             testName: found.testName || found.suiteName || found.name,
             specPath: found.specPath,
             screenshotUrl: found.screenshotUrl,
             errorMessage: found.errorMessage,
             lastRunAt: found.lastRunAt,
-            status: found.status,
+            status: normalizeStatus(found.status),
             duration: formatDuration(found.durationMs),
           });
 
-          break;
+          return;
         }
       }
+    setTestCase(null); // kalau tidak ketemu
     } catch (err) {
       console.error(err);
+      setTestCase(null);
     } finally {
-      setLoading(false);
+      setLoading(false); // selesai loading 
     }
   };
 
@@ -105,10 +122,9 @@ export default function DetailSuites() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getStatusBadgeClass = (status) => {
-    if (status === "PASSED") return "bg-green-100 text-green-700";
-    if (status === "FAILED" || status === "BROKEN")
-      return "bg-red-100 text-red-700";
-    return "";
+    if (status === 'PASSED') return 'bg-green-100 text-green-700 min-w-[80px]';
+    if (status === 'FAILED') return 'bg-red-100 text-red-700 min-w-[100px]';
+    return '';
   };
 
   /* ======================================================
@@ -151,8 +167,8 @@ export default function DetailSuites() {
     }
   };
   
-  const getTaskStatusClass = (priority) => {
-    switch(priority) {
+  const getTaskStatusClass = (status) => {
+    switch(status) {
       case 'To Do': return 'bg-[#B9B9B9] text-[#323232]';
       case 'In Progress': return 'bg-[#FFFAC6] text-[#CC7A00]';
       case 'Done': return 'bg-[#E5FFE5] text-[#006600]';
@@ -165,17 +181,23 @@ export default function DetailSuites() {
     defectDetails &&
     (defectDetails.status === "To Do" || defectDetails.status === "In Progress");
 
-  const formatDuration = (ms) => {
-    if (!ms) return '-';
-    const sec = Math.floor(ms / 1000);
-    const min = Math.floor(sec / 60);
-    return `${min}m ${sec % 60}s`;
-  };
-
+  if (!testCaseId) {
+    return (
+      <div className="flex-grow ml-[260px] p-8 min-h-screen overflow-y-auto">
+        <div className="flex items-center justify-center h-96">
+          <p className="text-gray-500 text-lg">No test case selected.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-grow ml-[260px] p-8 min-h-screen overflow-y-auto">
-      {testCase ? (
+      {loading ? (
+        <div className="flex items-center justify-center h-96">
+          <p className="text-gray-500 text-lg">Loading test case...</p>
+        </div>
+      ) : testCase ? (
         <>
           {/* Back Navigation */}
           <Link 
@@ -365,7 +387,7 @@ export default function DetailSuites() {
         <div className="flex items-center justify-center h-96">
           <p className="text-gray-500 text-lg">No data found.</p>
         </div>
-      )}
+      )} 
 
       {/* Modal Re run */}
       <RerunLoadingModal
