@@ -1,133 +1,299 @@
-import { useState } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from 'react';
 
-const ChangePassword = () => {
+
+const EditProfile = () => {
     const navigate = useNavigate();
 
     const [currentPassword, setCurrentPassword] = useState("");
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [username, setUsername] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
+    // FETCH PROFILE DATA LOGIN
+   useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/auth/me", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          // user tidak login
+          navigate("/login");
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data.loggedIn) {
+          setUsername(data.username);
+        }
+      } catch (err) {
+        console.error("Gagal mengambil data user", err);
+      }
+    };
+
+    fetchMe();
+  }, [navigate]);
+
+
+
+    // HANDLE SUBMIT FORM
     const handleSubmit = async (e) => {
-        e.preventDefault();
+      e.preventDefault();
 
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            return Swal.fire("Error", "Semua field wajib diisi", "error");
+      if (!username && !newPassword) {
+        return Swal.fire("Info", "Tidak ada perubahan", "info");
+      }
+
+      if (newPassword && newPassword !== confirmPassword) {
+        return Swal.fire("Error", "Konfirmasi password tidak cocok", "error");
+      }
+
+      setLoading(true);
+
+      try {
+        const res = await fetch("http://localhost:3000/api/edit-profile", {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            currentPassword,
+            newPassword,
+            confirmPassword,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          return Swal.fire("Error", data.message, "error");
         }
 
-        if (newPassword !== confirmPassword) {
-            return Swal.fire("Error", "Konfirmasi password tidak cocok", "error");
+        await Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: data.message,
+          timer: 1500,
+          timerProgressBar: true,
+          showConfirmButton: true,
+        });
+
+        if (data.message.includes("login")) {
+          navigate("/login");
         }
 
-        setLoading(true);
-
-        try {
-            const res = await fetch("http://localhost:3000/api/change-password", {
-            method: "PUT",
-            credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                currentPassword,
-                newPassword,
-                confirmPassword,
-            }),
-            });
-
-            const data = await res.json();
-
-            // CURRENT PASSWORD SALAH
-            if (res.status === 401) {
-            return Swal.fire({
-                icon: "error",
-                title: "Password Salah",
-                text: "Password lama yang kamu masukkan tidak benar",
-            });
-            }
-
-            // VALIDASI LAIN DARI BACKEND
-            if (!res.ok) {
-            return Swal.fire({
-                icon: "error",
-                title: "Gagal",
-                text: data.message || "Gagal mengubah password",
-            });
-            }
-
-            // SUCCESS
-            await Swal.fire({
-            icon: "success",
-            title: "Berhasil",
-            text: data.message,
-            confirmButtonText: "Login ulang",
-            });
-
-            navigate("/login");
+         window.location.reload();
         } catch (err) {
-            Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Terjadi kesalahan pada server",
-            });
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Server error. Please try again later.",
+        });
         } finally {
-            setLoading(false);
+          setLoading(false);
         }
     };
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+  <div className="min-h-screen bg-gray-100 p-8 ml-[260px]">
+    <div className="max-w-8l">
+      <h2 className="text-3xl font-semibold mb-6">Edit Profile</h2>
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-xl shadow-md w-full max-w-md"
+        className="bg-white p-8 rounded-xl shadow-md"
       >
-        <h1 className="text-2xl font-semibold mb-6 text-center">
-          Change Password
-        </h1>
+        {/* Username */}
+        <div className="mb-4">
+          <label className="text-sm text-gray-600">Username</label>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-300 focus:outline-none"
+          />
+        </div>
 
+        {/* Current Password */}
         <div className="mb-4">
           <label className="text-sm text-gray-600">Current Password</label>
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-300"
-          />
+
+          <div className="relative mt-1">
+            <input
+              type={showCurrentPassword ? "text" : "password"}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-300 focus:outline-none pr-12"
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                {showCurrentPassword ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+                  />
+                ) : (
+                  <>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </>
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <div className="mb-4">
-          <label className="text-sm text-gray-600">New Password</label>
+
+       {/* New Password */}
+      <div className="mb-4">
+        <label className="text-sm text-gray-600">New Password</label>
+
+        <div className="relative mt-1">
           <input
-            type="password"
+            type={showNewPassword ? "text" : "password"}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-300"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-300 focus:outline-none pr-12"
           />
-        </div>
 
+          <button
+            type="button"
+            onClick={() => setShowNewPassword(!showNewPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              {showNewPassword ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+                />
+              ) : (
+                <>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
+                </>
+              )}
+            </svg>
+          </button>
+        </div>
+      </div>
+
+
+        {/* Confirm Password */}
         <div className="mb-6">
-          <label className="text-sm text-gray-600">Confirm New Password</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-300"
-          />
+          <label className="text-sm text-gray-600">
+            Confirm New Password
+          </label>
+
+          <div className="relative mt-1">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-300 focus:outline-none pr-12"
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              {/* SVG ASLI — TIDAK DIUBAH */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                {showConfirmPassword ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+                  />
+                ) : (
+                  <>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </>
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <button
+
+        {/* Button Confirm */}
+        <div className="flex justify-end">
+          <button
           type="submit"
           disabled={loading}
-          className="w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50"
+          className=" w-full max-w-sm bg-[#1a1a1a] text-white py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
         >
-          {loading ? "Saving..." : "Change Password"}
+          {loading ? "Saving..." : "Save Changes"}
         </button>
+        </div>
       </form>
     </div>
-  );
+  </div>
+);
+
 };
 
-export default ChangePassword;
+export default EditProfile;
