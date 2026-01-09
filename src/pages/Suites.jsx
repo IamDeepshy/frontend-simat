@@ -33,43 +33,43 @@ const TestCaseAccordion = () => {
   /* ======================================================
    * FETCH DATA
    * ====================================================== */
+  const fetchSuites = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        "http://localhost:3000/api/grouped-testcases",
+        { credentials: "include" }
+      );
+      const data = await res.json();
+
+      const mapped = data.map((suite, idx) => ({
+        id: `${suite.parentCode}-${idx}`,
+        parentCode: suite.parentCode,
+        totalTests: suite.totalTests,
+        testCases: suite.testCases.map(tc => ({
+          id: tc.id,
+          name: tc.suiteName,
+          testName: tc.testName,
+          status: normalizeStatus(tc.status),
+          duration: formatDuration(tc.durationMs),
+          errorMessage: tc.errorMessage,
+          screenshotUrl: tc.screenshotUrl,
+          specPath: tc.specPath,
+          lastRunAt: tc.lastRunAt,
+          runId: tc.runId,
+        })),
+      }));
+
+      setTestSuites(mapped);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     setCurrentPage(1);
-
-    const fetchSuites = async () => {
-      try {
-        const res = await fetch(
-          'http://localhost:3000/api/grouped-testcases',
-          { credentials: 'include' }
-        );
-        const data = await res.json();
-
-        const mapped = data.map((suite, idx) => ({
-          id: `${suite.parentCode}-${idx}`,
-          parentCode: suite.parentCode,
-          totalTests: suite.totalTests,
-          testCases: suite.testCases.map(tc => ({
-            id: tc.id,
-            name: tc.suiteName,
-            testName: tc.testName,
-            status: normalizeStatus(tc.status),
-            duration: formatDuration(tc.durationMs),
-            errorMessage: tc.errorMessage,
-            screenshotUrl: tc.screenshotUrl,
-            specPath: tc.specPath,
-            lastRunAt: tc.lastRunAt,
-            runId: tc.runId,
-          })),
-        }));
-
-        setTestSuites(mapped);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchSuites();
   }, [activeFilter]);
 
@@ -96,6 +96,10 @@ const TestCaseAccordion = () => {
             'bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800',
         },
       });
+      // AUTO REFRESH DATA SETELAH RERUN SELESAI
+      setTimeout(() => {
+        fetchSuites();
+      }, 1000);
     }
 
     setWasRerunning(isRerunning);
@@ -430,7 +434,7 @@ const TestCaseAccordion = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex justify-center gap-3">
-                          <Link to="/detail-suites" state={{parentCode: suite.parentCode, testCases: tc}}>
+                          <Link to="/detail-suites" state={{testCaseId: tc.id }}>
                             <img src="/assets/icon/view.svg" className="w-5 h-5" />
                           </Link>
                           <button

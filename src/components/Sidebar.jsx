@@ -61,6 +61,7 @@ export default function Sidebar() {
         icon: "success",
         timer: 1500,
         showConfirmButton: false,
+        timerProgressBar: true
       });
 
       navigate("/login");

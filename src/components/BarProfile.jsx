@@ -17,7 +17,7 @@ const Navbar = () => {
   };
 
   // Logout
-  const handleLogout = async () => {
+   const handleLogout = async () => {
       const result = await Swal.fire({
         title: "Are you sure?",
         text: "You will be logged out from your account.",
@@ -36,6 +36,15 @@ const Navbar = () => {
         await fetch("http://localhost:3000/auth/logout", {
           method: "POST",
           credentials: "include",
+        });
+  
+        await Swal.fire({
+          title: "Logged out!",
+          text: "You have been logged out successfully.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+          timerProgressBar: true
         });
   
         navigate("/login");
@@ -62,6 +71,7 @@ const Navbar = () => {
       });
     }
   };
+
 
   return (
     <nav className="fixed top-0 right-0 left-[260px] h-20 bg-white shadow-sm border-b border-gray-200 px-6 pt-4 z-40">

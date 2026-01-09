@@ -20,7 +20,54 @@ export default function DetailSuites() {
   const [wasRerunning, setWasRerunning] = useState(false);
 
   const { state } = useLocation();
-  const { testCases } = state;
+  const { testCaseId } = state;
+
+  /* ======================================================
+   * FETCH TEST CASE DETAILS
+   * ====================================================== */
+
+  const [testCase, setTestCase] = useState(null);
+  const [setLoading] = useState(true);
+
+  const fetchTestCase = async () => {
+    try {
+      const res = await fetch(
+        "http://localhost:3000/api/grouped-testcases",
+        { credentials: "include" }
+      );
+      const data = await res.json();
+
+      // cari test case dari semua suite
+      for (const suite of data) {
+        const found = suite.testCases.find(tc => tc.id === testCaseId);
+        if (found) {
+          setTestCase({
+            id: found.id,
+            name: found.name,
+            testName: found.testName || found.suiteName || found.name,
+            specPath: found.specPath,
+            screenshotUrl: found.screenshotUrl,
+            errorMessage: found.errorMessage,
+            lastRunAt: found.lastRunAt,
+            status: found.status,
+            duration: formatDuration(found.durationMs),
+          });
+
+          break;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (testCaseId) {
+      fetchTestCase();
+    }
+  }, [testCaseId]);
 
 
   /* ======================================================
@@ -28,6 +75,7 @@ export default function DetailSuites() {
    * ====================================================== */
   useEffect(() => {
     if (wasRerunning && !isRerunning) {
+      fetchTestCase();
       Swal.fire({
         icon: "success",
         title: "Re-run successful",
@@ -69,14 +117,14 @@ export default function DetailSuites() {
   const [defectDetails, setDefectDetails] = useState(null);
 
   const fetchActiveDefect = async () => {
-    if (!testCases || testCases.status === "PASSED") {
+    if (!testCase || testCase.status === "PASSED") {
       setDefectDetails(null);
       return;
     }
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/defects/active?testSpecId=${testCases.id}`
+        `http://localhost:3000/api/defects/active?testSpecId=${testCase.id}`
       );
       const json = await res.json().catch(() => ({}));
       setDefectDetails(json?.data || null);
@@ -87,7 +135,7 @@ export default function DetailSuites() {
 
   useEffect(() => {
     fetchActiveDefect();
-  }, [testCases]);
+  }, [testCase]);
 
   // penting: refetch setelah modal close
   useEffect(() => {
@@ -117,10 +165,17 @@ export default function DetailSuites() {
     defectDetails &&
     (defectDetails.status === "To Do" || defectDetails.status === "In Progress");
 
+  const formatDuration = (ms) => {
+    if (!ms) return '-';
+    const sec = Math.floor(ms / 1000);
+    const min = Math.floor(sec / 60);
+    return `${min}m ${sec % 60}s`;
+  };
+
 
   return (
     <div className="flex-grow ml-[260px] p-8 min-h-screen overflow-y-auto">
-      {testCases ? (
+      {testCase ? (
         <>
           {/* Back Navigation */}
           <Link 
@@ -139,24 +194,24 @@ export default function DetailSuites() {
             {/* Test Case Header */}
             <div className="flex justify-between items-start mb-6 pb-6 border-b border-gray-200">
               <div>
-                <h5 className="text-xl font-semibold mb-3">{testCases.testName}</h5> 
+                <h5 className="text-xl font-semibold mb-3">{testCase.testName}</h5> 
                 <div className="flex items-center gap-4">
-                  <span className={`px-8 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(testCases.status)}`}>
-                    {testCases.status}
+                  <span className={`px-8 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(testCase.status)}`}>
+                    {testCase.status}
                   </span>
                   <span className="text-gray-500 flex items-center gap-1">
                     <i className="fa-regular fa-clock"></i>
-                    {testCases.duration}
+                    {testCase.duration}
                   </span>
                   <span className="text-gray-500 flex items-center gap-1">
                     <i className="fa-regular fa-file"></i>
-                    {testCases.name}
+                    {testCase.name}
                   </span>
 
                  <span className="text-gray-500 flex items-center gap-1">
                     <i className="fa-solid fa-flag-checkered"></i>
-                    {testCases.lastRunAt
-                      ? new Date(testCases.lastRunAt).toLocaleString('id-ID', {
+                    {testCase.lastRunAt
+                      ? new Date(testCase.lastRunAt).toLocaleString('id-ID', {
                           day: '2-digit',
                           month: 'short',
                           year: 'numeric',
@@ -171,14 +226,14 @@ export default function DetailSuites() {
               {/* Action Buttons */}
               <div className="flex gap-3">
                 <button 
-                  onClick={() => rerun(testCases)}
+                  onClick={() => rerun(testCase)}
                   disabled={isRerunning}
                   className="px-8 py-2 bg-white border border-gray-300 rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
                   <img src="/assets/icon/rerun.svg" alt="Rerun icon" className="w-4 h-4" />
                   Rerun Test
                 </button>
 
-                {testCases.status !== "PASSED" && (
+                {testCase.status !== "PASSED" && (
                   <>
                   <button
                     onClick={() => setIsModalOpen(true)}
@@ -208,8 +263,8 @@ export default function DetailSuites() {
                       className="fixed inset-0 bg-gray-900/50 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
                       isOpen={isModalOpen}
                       onClose={() => setIsModalOpen(false)}
-                      testCaseName={testCases.testName}   
-                      testSpecId={testCases.id}           
+                      testCaseName={testCase.testName}   
+                      testSpecId={testCase.id}           
                     />
                   </>
                 )}
@@ -217,7 +272,7 @@ export default function DetailSuites() {
             </div>
             
             {/* Details */}
-            {testCases.status !== "PASSED" && defectDetails && (
+            {testCase.status !== "PASSED" && defectDetails && (
             // <div className=" items-start mb-6 ">
               <div className="mb-6 pb-6 border-b border-gray-200">
                 <h5 className="text-lg font-semibold mb-4">Details</h5>
@@ -269,33 +324,33 @@ export default function DetailSuites() {
               </div>
             )}
 
-            {testCases.status === "PASSED" ? (
+            {testCase.status === "PASSED" ? (
               <div className="bg-green-100 -mx-6 px-6 py-8 -mb-6 rounded-b-2xl justify-center flex flex-col items-center text-center">
                 <img src="/assets/icon/checkbox.svg" alt="Check icon" className='pt-6'/>
                 <h1 className="text-4xl font-semibold mb-2 mt-8">Test Case Passed </h1>
-                <p className='italic pb-6 mt-2 text-lg'>The case <span className='font-medium'>{testCases.name}</span> passed as expected</p>
+                <p className='italic pb-6 mt-2 text-lg'>The case <span className='font-medium'>{testCase.name}</span> passed as expected</p>
               </div>
             ) : (
               <>
                 {/* Error Details Section */}
-                {testCases.errorMessage && (
+                {testCase.errorMessage && (
                   <div className="bg-[#ff3e3e16] -mx-6 px-6 py-6 mb-6">
                     <h5 className="text-lg font-semibold text-red-700 mb-4">Error Details</h5>
                     <div className="bg-white rounded-lg p-4">
                       <p className="text-red-700 whitespace-pre-wrap text-medium">
-                        {testCases.errorMessage}
+                        {testCase.errorMessage}
                       </p>
                     </div>
                   </div>
                 )}
 
                 {/* Execution Record Section */}
-                {testCases.screenshotUrl && (
+                {testCase.screenshotUrl && (
                   <div className="mt-6">
                     <h5 className="text-lg font-semibold mb-4">Failure Evidence</h5>
                     <div className="bg-gray-100 rounded-lg p-6 relative">
                       <img
-                        src={`http://localhost:3000/screenshots/${testCases.screenshotUrl}`}
+                        src={`http://localhost:3000/screenshots/${testCase.screenshotUrl}`}
                         alt="Screenshot"
                         className="rounded-lg border max-w-full"
                       />

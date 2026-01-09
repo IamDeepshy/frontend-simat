@@ -8,12 +8,15 @@ export function useRerunTest() {
 
   const rerun = async (testCase) => {
     try {
+      
+      const resolveTestName = (tc) => tc.testName || tc.suiteName || tc.name || "-";
+
       setIsRerunning(true);
       setProgress(0);
-      setRerunTestName(testCase.name);
+      setRerunTestName(resolveTestName(testCase));
       setStatus("running");
 
-      // 1️⃣ trigger rerun
+      //  trigger rerun
       const res = await fetch("http://localhost:3000/api/jenkins/rerun/spec", {    
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -26,7 +29,7 @@ export function useRerunTest() {
 
       const { queueUrl } = await res.json();
 
-      // 2️⃣ resolve queue → build number
+      //  resolve queue → build number
       let buildNumber = null;
       while (!buildNumber) {
         const q = await fetch(
@@ -37,7 +40,7 @@ export function useRerunTest() {
         await new Promise(r => setTimeout(r, 2000));
       }
 
-      // 3️⃣ polling progress
+      //  polling progress
       let finished = false;
       while (!finished) {
         const p = await fetch(
@@ -51,7 +54,7 @@ export function useRerunTest() {
         await new Promise(r => setTimeout(r, 2000));
       }
 
-      // ✅ selesai
+      //  selesai
       setProgress(100);
       setStatus("success");
     } catch (err) {
@@ -67,6 +70,6 @@ export function useRerunTest() {
     isRerunning,
     progress,
     rerunTestName,
-    status, // ⬅️ PENTING
+    status,
   };
 }

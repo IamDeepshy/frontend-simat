@@ -1,17 +1,27 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Swal from "sweetalert2";
 
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState("");   // <-- tambah
-  const [password, setPassword] = useState("");   // <-- tambah
+  const [username, setUsername] = useState("");   
+  const [password, setPassword] = useState(""); 
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // validasi FE ringan
+    if (!username || !password) {
+      return Swal.fire({
+        icon: "warning",
+        title: "Missing fields",
+        text: "Please enter both username and password.",
+      });
+    }
 
     try {
       const res = await fetch("http://localhost:3000/auth/login", {
@@ -23,42 +33,58 @@ export default function Login() {
 
       const data = await res.json();
 
+      /* ===========================
+        FAILED LOGIN
+      =========================== */
       if (!res.ok) {
         if (res.status === 401) {
-          alert(data.message || "Username atau password salah");
-        } else {
-          alert(data.message || "Terjadi kesalahan pada server");
+          return Swal.fire({
+            icon: "error",
+            title: "Login failed",
+            text: data.message || "Invalid username or password.",
+            timer: 1500,
+            showConfirmButton: false,
+            timerProgressBar: true
+          });
         }
-        return;
+
+        return Swal.fire({
+          icon: "error",
+          title: "Server error",
+          text: data.message || "Something went wrong. Please try again later.",
+          timer: 1500,
+          showConfirmButton: false,
+          timerProgressBar: true
+        });
       }
 
       await refreshUser();
 
-      // Setelah login sukses, tanya role ke backend
+      // ambil data user
       const meRes = await fetch("http://localhost:3000/auth/me", {
         credentials: "include",
       });
 
       if (!meRes.ok) {
-        // fallback kalau ada masalah, arahkan ke /login lagi
         navigate("/login");
         return;
       }
 
       const me = await meRes.json();
 
-      // Redirect sesuai role
+      // redirect sesuai role
       if (me.role === "qa") {
         navigate("/");
-      } else if (me.role === "dev") {
-        navigate("/suites");
       } else {
-        // fallback, misal role lain
         navigate("/suites");
       }
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan pada server");
+      Swal.fire({
+        icon: "error",
+        title: "Network error",
+        text: "Unable to connect to server. Please check your connection.",
+      });
     }
   };
 
