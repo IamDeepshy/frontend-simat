@@ -7,9 +7,16 @@ export function useRerunTest() {
   const [status, setStatus] = useState("idle"); // idle | running | success | error
 
   const rerun = async (testCase) => {
+    console.log("RERUN INPUT:", testCase);
+
     try {
       
-      const resolveTestName = (tc) => tc.testName || tc.suiteName || tc.name || "-";
+      const resolveTestName = (tc = {}) =>
+        tc.name ??
+        tc.testName ??
+        tc.suiteName ??
+        "-";
+
 
       setIsRerunning(true);
       setProgress(0);

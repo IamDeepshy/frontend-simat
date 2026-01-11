@@ -526,7 +526,7 @@ const TestCaseAccordion = () => {
       <RerunLoadingModal
         open={isRerunning}
         progress={progress}
-        testName={rerunTestName}
+        name={rerunTestName}
       />
 
 

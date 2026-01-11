@@ -42,6 +42,7 @@ export default function DetailSuites() {
     return `${min}m ${sec % 60}s`;
   };
 
+
   const fetchTestCase = async () => {
     try {
       setLoading(true); // mulai loading
@@ -56,6 +57,7 @@ export default function DetailSuites() {
       for (const suite of data) {
         const found = suite.testCases.find(tc => tc.id === testCaseId);
         if (found) {
+          // console.log("FOUND:", found);
           setTestCase({
             id: found.id,
             name: found.suiteName,
@@ -225,6 +227,7 @@ export default function DetailSuites() {
                     <i className="fa-regular fa-clock"></i>
                     {testCase.duration}
                   </span>
+
                   <span className="text-gray-500 flex items-center gap-1">
                     <i className="fa-regular fa-file"></i>
                     {testCase.name}
@@ -393,7 +396,7 @@ export default function DetailSuites() {
       <RerunLoadingModal
         open={isRerunning}
         progress={progress}
-        testName={rerunTestName}
+        name= {rerunTestName}
       />
     </div>
   );
