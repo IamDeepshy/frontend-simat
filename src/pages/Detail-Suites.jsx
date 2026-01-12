@@ -302,7 +302,7 @@ export default function DetailSuites() {
               <div className="mb-6 pb-6 border-b border-gray-200">
                 <h5 className="text-lg font-semibold mb-4">Details</h5>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 ">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-24 ">
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-3.5">Assignee</p>
                     <div className="flex items-center gap-2 ">
@@ -335,6 +335,23 @@ export default function DetailSuites() {
                       <span className="text-sm text-gray-900 font-medium">
                         {defectDetails?.created_at
                           ? new Date(defectDetails.created_at).toLocaleString("id-ID", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "-"}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-3.5">Update Task Status At</p>
+                    <div className="flex items-center gap-2">
+                      <i className="fa-regular fa-calendar text-gray-400 text-sm"></i>
+                      <span className="text-sm text-gray-900 font-medium">
+                        {defectDetails?.updated_at
+                          ? new Date(defectDetails.updated_at).toLocaleString("id-ID", {
                               day: "2-digit",
                               month: "short",
                               year: "numeric",

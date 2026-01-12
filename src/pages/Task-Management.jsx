@@ -7,6 +7,7 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -17,9 +18,9 @@ import {
 } from '@dnd-kit/sortable';
 
 import { CSS } from '@dnd-kit/utilities';
-import { useDroppable } from '@dnd-kit/core';
 
 export default function TaskManagement() {
+  // query API tasks
   const [filters, setFilters] = useState({
     status: 'all',
     assignee: 'all',
@@ -28,8 +29,10 @@ export default function TaskManagement() {
 
   const [openDropdown, setOpenDropdown] = useState(null);
 
+  // container awal
+  const [originColumn, setOriginColumn] = useState(null);
 
-
+  // ID task yang sedang di drag (DragOverlay)
   const [activeId, setActiveId] = useState(null);
 
   // state user
@@ -55,9 +58,7 @@ export default function TaskManagement() {
     fetchUser();
   }, []);
 
-  const role = user?.role;
-  const username = user?.username;
-
+  // ambil list role developer (filter role QA)
   const [developers, setDevelopers] = useState([]);
 
   useEffect(() => {
@@ -74,69 +75,14 @@ export default function TaskManagement() {
     fetchDevelopers();
   }, [user]);
 
+  // kolom kanban
   const [tasksByColumn, setTasksByColumn] = useState({
     todo: [],
     inProgress: [],
     done: [],
   });
-
-  useEffect(() => {
-  if (!user) return;
-
-  const fetchTasks = async () => {
-      const params = new URLSearchParams({
-        status: filters.status,
-        priority: filters.priority,
-      });
-
-      // QA boleh filter assignee
-      if (user.role !== "dev") {
-        params.set("assignee", filters.assignee);
-      }
-
-      const res = await fetch(
-        `http://localhost:3000/api/task-management?${params.toString()}`,
-        { credentials: "include" }
-      );
-
-      if (!res.ok) return;
-
-      const list = await res.json();
-
-      const mapStatus = (s) => {
-        const v = (s || "").toLowerCase().trim();
-        if (v === "todo" || v === "to do") return "todo";
-        if (v === "inprogress" || v === "in progress") return "inProgress";
-        if (v === "done") return "done";
-        return null;
-      };
-
-      const grouped = { todo: [], inProgress: [], done: [] };
-      for (const t of list) {
-        const key = mapStatus(t.status);
-        if (key) grouped[key].push(t);
-      }
-      setTasksByColumn(grouped);
-
-    };
-
-    fetchTasks();
-  }, [user, filters.status, filters.priority, filters.assignee]);
-
-
-
-  // Configure sensors for drag detection
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // 8px movement before drag starts (prevents accidental drags)
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
+  
+  // warna label prioritas
   const getPriorityClass = (priority) => {
     switch(priority) {
       case 'High': return 'bg-[#FFCDCF] text-[#BD0108]';
@@ -146,7 +92,91 @@ export default function TaskManagement() {
     }
   };
 
-  // Find which container a task belongs to
+  // filter kanban
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchTasks = async () => {
+        const params = new URLSearchParams({
+          status: filters.status,
+          priority: filters.priority,
+        });
+
+        // QA boleh filter assignee
+        if (user.role !== "dev") {
+          params.set("assignee", filters.assignee);
+        }
+
+        const res = await fetch(
+          `http://localhost:3000/api/task-management?${params.toString()}`,
+          { credentials: "include" }
+        );
+
+        if (!res.ok) return;
+
+        const list = await res.json();
+
+        const mapStatus = (s) => {
+          const v = (s || "").toLowerCase().trim();
+          if (v === "todo" || v === "to do") return "todo";
+          if (v === "inprogress" || v === "in progress") return "inProgress";
+          if (v === "done") return "done";
+          return null;
+        };
+
+        const grouped = { todo: [], inProgress: [], done: [] };
+        for (const t of list) {
+          const key = mapStatus(t.status);
+          if (key) grouped[key].push(t);
+        }
+        setTasksByColumn(grouped);
+
+      };
+
+      fetchTasks();
+    }, [user, filters.status, filters.priority, filters.assignee]);
+
+
+  // ROLE CHECK (enable/disable drag)
+  const isDev = user?.role === "dev";
+  
+  const columnToStatus = (columnId) => {
+    if (columnId === "todo") return "To Do";
+    if (columnId === "inProgress") return "In Progress";
+    if (columnId === "done") return "Done";
+    return null;
+  };
+
+  const updateTaskStatus = async (taskId, newColumnId) => {
+    const newStatus = columnToStatus(newColumnId);
+    if (!newStatus) return;
+
+    const res = await fetch(`http://localhost:3000/api/task-management/${taskId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status: newStatus }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Update status gagal");
+    }
+  };
+
+  // konfigurasi sensor (deteksi drag)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // apabila digeser 8px baru drag dimulai
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // menemukan task id di kolom mana 
   const findContainer = (id) => {
     if (id in tasksByColumn) return id;
 
@@ -155,14 +185,17 @@ export default function TaskManagement() {
     );
   };
 
+  // handle drag and drop
   const handleDragStart = (event) => {
-    const { active } = event;
-    setActiveId(active.id);
+    if (!isDev) return; // selain dev tidak boleh drag
+    setActiveId(event.active.id);
+    setOriginColumn(findContainer(event.active.id)); 
   };
 
   const handleDragOver = (event) => {
-    const { active, over } = event;
+    if (!isDev) return;
 
+    const { active, over } = event;
     if (!over) return;
 
     const activeContainer = findContainer(active.id);
@@ -173,117 +206,109 @@ export default function TaskManagement() {
     }
 
     setTasksByColumn((prev) => {
-      const activeItems = prev[activeContainer];
-      const overItems = prev[overContainer];
+        const activeItems = prev[activeContainer];
+        const overItems = prev[overContainer];
 
-      const activeIndex = activeItems.findIndex((task) => task.id === active.id);
-      const overIndex = overItems.findIndex((task) => task.id === over.id);
+        const activeIndex = activeItems.findIndex(
+          (task) => String(task.id) === String(active.id)
+        );
+        const overIndex = overItems.findIndex(
+          (task) => String(task.id) === String(over.id)
+        );
 
-      let newIndex;
-      if (over.id in prev) {
-        // Dropping over a container (column)
-        newIndex = overItems.length;
-      } else {
-        // Dropping over another task
-        newIndex = overIndex >= 0 ? overIndex : 0;
-      }
+        const newIndex = over.id in prev ? overItems.length : overIndex >= 0 ? overIndex : 0;
 
-      return {
-        ...prev,
-        [activeContainer]: activeItems.filter((task) => task.id !== active.id),
-        [overContainer]: [
-          ...overItems.slice(0, newIndex),
-          activeItems[activeIndex],
-          ...overItems.slice(newIndex),
-        ],
-      };
-    });
-  };
+        return {
+          ...prev,
+          [activeContainer]: activeItems.filter(
+            (task) => String(task.id) !== String(active.id)
+          ),
+          [overContainer]: [
+            ...overItems.slice(0, newIndex),
+            activeItems[activeIndex],
+            ...overItems.slice(newIndex),
+          ],
+        };
+      });
+    };
 
-  const handleDragEnd = (event) => {
+  const handleDragEnd = async (event) => {
+    if (!isDev) return;
+
     const { active, over } = event;
+    setActiveId(null);
 
     if (!over) {
-      setActiveId(null);
+      setOriginColumn(null);
       return;
     }
+   
+    // target kolom = tempat drop sekarang
+    const targetColumn = findContainer(over.id);
 
-    const activeContainer = findContainer(active.id);
-    const overContainer = findContainer(over.id);
-
-    if (!activeContainer || !overContainer) {
-      setActiveId(null);
-      return;
+    // kalau pindah kolom, update DB
+    if (originColumn && targetColumn && originColumn !== targetColumn) {
+      try {
+        await updateTaskStatus(active.id, targetColumn);
+      } catch (err) {
+        console.error("UPDATE STATUS ERROR:", err);
+      }
     }
 
-    const activeIndex = tasksByColumn[activeContainer].findIndex((task) => task.id === active.id);
-    const overIndex = tasksByColumn[overContainer].findIndex((task) => task.id === over.id);
-
-    if (activeIndex !== overIndex) {
-      setTasksByColumn((prev) => ({
-        ...prev,
-        [overContainer]: arrayMove(prev[overContainer], activeIndex, overIndex),
-      }));
-    }
-
-    setActiveId(null);
+    setOriginColumn(null);
   };
 
-  const TaskCard = ({ task }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: String(task.id) });
+  // komponen card task
+  const TaskCard = ({ task, dragDisabled }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+      useSortable({ id: task.id, disabled: dragDisabled });
 
     const style = {
       transform: CSS.Transform.toString(transform),
       transition,
-    };
+  };
 
-    return (
-      // task card
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        {...listeners}
-        className={`bg-white rounded-lg p-4 mb-3 border border-gray-200 hover:shadow-md transition-all cursor-grab active:cursor-grabbing ${
-          isDragging ? 'opacity-50' : ''
-        }`}
-      >
-        <div className="flex items-start justify-between gap-2 mb-3.5">
-          <span className={`px-3 py-1 rounded text-sm font-semibold uppercase ${getPriorityClass(task.priority)}`}>
-            {task.priority}
-          </span>
-          <div className="flex items-center gap-1 text-gray-400">
-            {/* Grip Vertical Icon - SVG */}
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-            </svg>
-          </div>
-        </div>
-        {task.suiteName && (
-          <span className="inline-block text-xs font-medium px-2 py-1 rounded bg-gray-100 text-gray-700 mb-2 truncate max-w-full">
-            {task.suiteName}
-          </span>
-        )}
-        <h6 className="font-semibold mb-2">{task.title}</h6>
-        <p className="text-sm font-medium text-gray-600 mb-3 break-words whitespace-pre-wrap">{task.notes}</p>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          {/* User Icon - SVG */}
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  return (
+    // task card
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...(dragDisabled ? {} : listeners)}
+      className={`bg-white rounded-lg p-4 mb-3 border border-gray-200 hover:shadow-md transition-all ${
+        dragDisabled ? "cursor-default" : "cursor-grab active:cursor-grabbing"
+      } ${isDragging ? "opacity-50" : ""}`}
+    >
+      <div className="flex items-start justify-between gap-2 mb-3.5">
+        <span className={`px-3 py-1 rounded text-sm font-semibold uppercase ${getPriorityClass(task.priority)}`}>
+          {task.priority}
+        </span>
+        <div className="flex items-center gap-1 text-gray-400">
+          {/* Grip Vertical Icon - SVG */}
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
           </svg>
-          <span>{task.assignDev}</span>
         </div>
       </div>
+      {task.suiteName && (
+        <span className="inline-block text-xs font-medium px-2 py-1 rounded bg-gray-100 text-gray-700 mb-2 truncate max-w-full">
+          {task.suiteName}
+        </span>
+      )}
+      <h6 className="font-semibold mb-2">{task.title}</h6>
+      <p className="text-sm font-medium text-gray-600 mb-3 break-words whitespace-pre-wrap">{task.notes}</p>
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        {/* User Icon - SVG */}
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        <span>{task.assignDev}</span>
+      </div>
+    </div>
     );
   };
 
+  // komponen kolom (droppable + sortable list)
   const Column = ({ columnId, title, tasks: columnTasks, bgColor, stColor }) => {
     const { setNodeRef, isOver } = useDroppable({
       id: columnId,
@@ -298,7 +323,7 @@ export default function TaskManagement() {
           </span>
         </div>
         <SortableContext
-          items={columnTasks.map((task) => String(task.id) )}
+          items={columnTasks.map((task) => task.id )}
           strategy={verticalListSortingStrategy}
         >
           <div 
@@ -319,7 +344,7 @@ export default function TaskManagement() {
               </div>
             ) : (
               columnTasks.map((task, index) => (
-                <TaskCard key={task.id} task={task} index={index} />
+                <TaskCard key={task.id} task={task} dragDisabled={!isDev} />
               ))
             )}
           </div>
@@ -328,7 +353,7 @@ export default function TaskManagement() {
     );
   };
 
-  // Custom Dropdown Component
+  // komponen custom dropdown
   const CustomDropdown = ({ icon, value, options, dropdownKey, filterType }) => {
     const dropdownRef = useRef(null);
     const isOpen = openDropdown === dropdownKey;
@@ -397,13 +422,6 @@ export default function TaskManagement() {
     );
   };
 
-  // Get the active task for drag overlay
-  const activeTask = activeId
-    ? Object.values(tasksByColumn)
-        .flat()
-        .find((task) => String(task.id) === String(activeId))
-    : null;
-
   // Options for dropdowns
   const statusOptions = [
     { value: 'all', label: 'All Status' },
@@ -423,6 +441,13 @@ export default function TaskManagement() {
     { value: 'medium', label: 'Medium' },
     { value: 'low', label: 'Low' }
   ];
+
+  // get active task untuk drag overlay
+  const activeTask = activeId 
+    ? Object.values(tasksByColumn) 
+      .flat() 
+      .find((task) => task.id === activeId) 
+    : null;
 
   return (
     <div className="flex-grow ml-[260px] pt-4 pb-8 pr-8 pl-8 min-h-screen overflow-y-auto">
@@ -492,15 +517,14 @@ export default function TaskManagement() {
 
 
       {/* tip hanya tampil kalau role developer */}
-      {user?.role === "dev" && (
+      {isDev && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-3">
-          {/* Info Circle Icon - SVG */}
-          <svg 
-            className="w-5 h-5 text-blue-500 flex-shrink-0"
-            fill="currentColor" 
-            viewBox="0 0 20 20"
-          >
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          <svg className="w-5 h-5 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clipRule="evenodd"
+            />
           </svg>
           <p className="text-sm text-blue-700">
             <strong>Tip:</strong> Drag and drop tasks between columns to update their status
@@ -510,7 +534,7 @@ export default function TaskManagement() {
 
       {/* Kanban Board with Drag & Drop */}
       <DndContext
-        sensors={user?.role === "dev" ? sensors : []}
+        sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -540,7 +564,7 @@ export default function TaskManagement() {
           />
         </div>
 
-        {/* Drag Overlay - shows the task being dragged */}
+        {/* Drag Overlay */}
         <DragOverlay>
           {activeTask ? (
             <div className="bg-white rounded-lg p-4 border-2 border-blue-400 shadow-2xl rotate-2 scale-105">
@@ -555,19 +579,19 @@ export default function TaskManagement() {
                   </svg>
                 </div>
               </div>
-              {task.suiteName && (
+              {activeTask.suiteName && (
                 <span className="inline-block text-xs font-medium px-2 py-1 rounded bg-gray-100 text-gray-700 mb-2 truncate max-w-full">
-                {task.suiteName}
+                {activeTask.suiteName}
                 </span>
               )}
               <h6 className="font-semibold text-sm mb-2">{activeTask.title}</h6>
-              <p className="text-xs text-gray-600 mb-3">{activeTask.description}</p>
+              <p className="text-xs text-gray-600 mb-3">{activeTask.notes}</p>
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 {/* User Icon - SVG */}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span>{activeTask.assignee}</span>
+                <span>{activeTask.assignDev}</span>
               </div>
             </div>
           ) : null}
