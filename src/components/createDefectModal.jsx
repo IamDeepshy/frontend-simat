@@ -152,7 +152,7 @@ const CreateDefectModal = ({ isOpen, onClose, testCaseName, testSpecId }) => {
           ? "Medium"
           : "Low";
 
-      const status = "To Do";
+      // const status = "To Do";
 
       // Payload ke backend 
       const payload = {

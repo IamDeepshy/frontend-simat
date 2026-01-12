@@ -176,9 +176,73 @@ const TestCaseAccordion = () => {
     );
   };
 
+   /* ======================================================
+    * FETCH USER LOGIN
+    * ====================================================== */
+    const [user, setUser] = useState(null);
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/auth/me", {
+          credentials: "include",
+        });
+  
+        if (!res.ok) return;
+  
+        const data = await res.json();
+        setUser(data);
+      } catch (err) {
+        console.error("FETCH USER ERROR:", err);
+      }
+    };
+  
+    useEffect(() => {
+      fetchUser();
+    }, []);
+
+
   /* ======================================================
+   * PAGINATION LOGIC
+   * ====================================================== */
+
+  const filteredSuites = testSuites
+    .map(suite => {
+      // filter status (passed / failed)
+      const statusFiltered = filterTestCases(suite.testCases);
+
+      // filter search
+      const searchFiltered = filterBySearch({
+        ...suite,
+        testCases: statusFiltered
+      });
+
+      return {
+        ...suite,
+        testCases: searchFiltered
+      };
+    })
+  // hide suite kalau tidak ada testCase tersisa
+  .filter(suite => suite.testCases.length > 0);
+
+
+  const totalPages = Math.ceil(filteredSuites.length / ITEMS_PER_PAGE);
+
+  const paginatedSuites = filteredSuites.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  if (loading) {
+    return <div className="ml-[260px] p-8">Loading...</div>;
+  }
+
+  const isEmpty =
+  !loading &&
+  filteredSuites.length === 0;
+
+   /* ======================================================
    * EXPORT REPORT TO CSV
    * ====================================================== */
+  const isExportDisabled = filteredSuites.length === 0;
 
   const exportToCSV = () => {
     if (!testSuites.length) return;
@@ -230,41 +294,6 @@ const TestCaseAccordion = () => {
   };
 
 
-  /* ======================================================
-   * PAGINATION LOGIC
-   * ====================================================== */
-
-  const filteredSuites = testSuites
-    .map(suite => {
-      // filter status (passed / failed)
-      const statusFiltered = filterTestCases(suite.testCases);
-
-      // filter search
-      const searchFiltered = filterBySearch({
-        ...suite,
-        testCases: statusFiltered
-      });
-
-      return {
-        ...suite,
-        testCases: searchFiltered
-      };
-    })
-  // hide suite kalau tidak ada testCase tersisa
-  .filter(suite => suite.testCases.length > 0);
-
-
-  const totalPages = Math.ceil(filteredSuites.length / ITEMS_PER_PAGE);
-
-  const paginatedSuites = filteredSuites.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-
-  if (loading) {
-    return <div className="ml-[260px] p-8">Loading...</div>;
-  }
-
   return (
     <div className="ml-[260px] p-8 min-h-screen">
 
@@ -274,9 +303,19 @@ const TestCaseAccordion = () => {
           <h1 className="text-3xl font-semibold">Suites</h1>
           <p className="text-gray-500 mt-1">Manage and monitor your test suites</p>
         </div>
-        <button 
+         <button 
           onClick={exportToCSV}
-          className="bg-black text-white text-sm px-5 py-2.5 rounded-lg hover:bg-gray-800 transition-all flex items-center gap-2">
+          disabled={isExportDisabled}
+          className={`px-5 py-2.5 rounded-lg flex items-center gap-2 transition-all
+              ${isExportDisabled
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-black text-white hover:bg-gray-800 hover:shadow-md hover:-translate-y-0.5"}
+            `}
+            title={
+              isExportDisabled
+                ? "Tidak ada data untuk di-export"
+                : "Export Report"
+        }>
           <img src="/assets/icon/export.svg" alt="Export icon" className="w-5 h-5" />
           Export Report
         </button>
@@ -314,38 +353,40 @@ const TestCaseAccordion = () => {
         </div>
 
         {/* Filter Buttons */}
-        <div className="lg:col-span-7 flex gap-3">
-          <button
-            onClick={() => setActiveFilter('all')}
-            className={`px-12 py-0.2 rounded-lg text-sm transition-all ${
-              activeFilter === 'all'
-                ? 'bg-black text-white shadow-md font-semibold'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            All Test
-          </button>
-          <button
-            onClick={() => setActiveFilter('passed')}
-            className={`px-9 py-0.2 rounded-lg text-sm transition-all ${
-              activeFilter === 'passed'
-                ? 'bg-[#E5FFE5] text-[#006600] shadow-md font-semibold'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            Test Passed
-          </button>
-          <button
-            onClick={() => setActiveFilter('failed')}
-            className={`px-10 py-0.2 rounded-lg text-sm transition-all ${
-              activeFilter === 'failed'
-                ? 'bg-[#FAD1D3] text-[#B6161B] shadow-md font-semibold '
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            Test Failed
-          </button>
-        </div>
+        {user?.role === "qa" && (
+          <div className="lg:col-span-7 flex gap-3">
+            <button
+              onClick={() => setActiveFilter('all')}
+              className={`px-12 py-0.2 rounded-lg text-sm transition-all ${
+                activeFilter === 'all'
+                  ? 'bg-black text-white shadow-md font-semibold'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              All Test
+            </button>
+            <button
+              onClick={() => setActiveFilter('passed')}
+              className={`px-9 py-0.2 rounded-lg text-sm transition-all ${
+                activeFilter === 'passed'
+                  ? 'bg-[#E5FFE5] text-[#006600] shadow-md font-semibold'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Test Passed
+            </button>
+            <button
+              onClick={() => setActiveFilter('failed')}
+              className={`px-10 py-0.2 rounded-lg text-sm transition-all ${
+                activeFilter === 'failed'
+                  ? 'bg-[#FAD1D3] text-[#B6161B] shadow-md font-semibold '
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Test Failed
+            </button>
+          </div>
+        )}
       </div>
 
       {/* INFO SEARCH */}
@@ -355,6 +396,28 @@ const TestCaseAccordion = () => {
           <span className="font-medium"> "{searchTerm}"</span>
         </p>
       )}
+
+      {/* ================= EMPTY STATE ================= */}
+      {!loading && isEmpty && (
+        <div className="bg-white border rounded-2xl p-12 text-center text-gray-600">
+          <div className="flex flex-col items-center gap-4">
+            <img
+              src="/assets/icon/empty.svg"
+              alt="No data"
+              className="w-24 h-24 opacity-90"
+            />
+
+            <h3 className="text-2xl font-semibold text-gray-800">
+              No Tasks Assigned
+            </h3>
+
+            <p className="max-w-md text-sm text-gray-500">
+              You don’t have any assigned defects right now.
+            </p>
+          </div>
+        </div>
+      )}
+
 
       {/* ================= ACCORDION LIST ================= */}
       {paginatedSuites.map((suite) => {
@@ -493,12 +556,13 @@ const TestCaseAccordion = () => {
 
         <div className="flex gap-2">
           <button
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(p => p - 1)}
+            disabled={totalPages === 0 || currentPage === 1}
+            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
             className="px-3 py-2 border rounded disabled:opacity-40"
           >
-            Sebelumnya
+            Previous
           </button>
+
 
           {Array.from({ length: totalPages }).map((_, i) => (
             <button
@@ -513,12 +577,13 @@ const TestCaseAccordion = () => {
           ))}
 
           <button
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(p => p + 1)}
+            disabled={totalPages === 0 || currentPage >= totalPages}
+            onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
             className="px-3 py-2 border rounded disabled:opacity-40"
           >
-            Selanjutnya
+            Next
           </button>
+
         </div>
       </div>
 

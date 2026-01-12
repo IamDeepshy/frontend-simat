@@ -142,11 +142,21 @@ export default function DetailSuites() {
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/defects/active?testSpecId=${testCase.id}`
+        `http://localhost:3000/api/defects/active?testSpecId=${testCase.id}`,
+        {
+          credentials: "include",
+        }
       );
-      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setDefectDetails(null);
+        return;
+      }
+
+      const json = await res.json();
       setDefectDetails(json?.data || null);
     } catch (e) {
+      console.error("FETCH ACTIVE DEFECT ERROR:", e);
       setDefectDetails(null);
     }
   };
@@ -192,6 +202,30 @@ export default function DetailSuites() {
       </div>
     );
   }
+
+  /* ======================================================
+  * FETCH USER LOGIN
+  * ====================================================== */
+  const [user, setUser] = useState(null);
+  const fetchUser = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/auth/me", {
+        credentials: "include",
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      setUser(data);
+    } catch (err) {
+      console.error("FETCH USER ERROR:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
 
   return (
     <div className="flex-grow ml-[260px] p-8 min-h-screen overflow-y-auto">
@@ -258,7 +292,7 @@ export default function DetailSuites() {
                   Rerun Test
                 </button>
 
-                {testCase.status !== "PASSED" && (
+                {testCase.status !== "PASSED" && user?.role === "qa" && (
                   <>
                   <button
                     onClick={() => setIsModalOpen(true)}
