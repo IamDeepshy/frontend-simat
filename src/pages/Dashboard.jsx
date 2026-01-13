@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 export default function Dashboard() {
   const [testSuites, setTestSuites] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [inProgressTask, setInProgressTask] = useState(0);
 
   /* ======================================================
    * HELPERS
@@ -70,6 +71,24 @@ export default function Dashboard() {
     fetchSuites();
   }, []);
 
+  // total in progress
+  useEffect(() => {
+    const fetchInProgressTask = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:3000/api/task-management?status=In%20Progress",
+          { credentials: "include" }
+        );
+        const data = await res.json();
+        setInProgressTask(data.length);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchInProgressTask();
+  }, []);
+
   if (loading) return <p className="p-6 text-center">Loading...</p>;
 
   /* ======================================================
@@ -84,13 +103,12 @@ export default function Dashboard() {
     (acc, suite) => acc + getFilteredCounts(suite).failed,
     0
   );
-  const inProgress = totalTests - (totalPassed + totalFailed);
 
   const stats = [
     { title: "Total Test Cases", value: totalTests, icon: "/assets/icon/list.svg", bgColor: "bg-[#EFF6FF]" },
     { title: "Total Test Passed", value: totalPassed, icon: "/assets/icon/passed.svg", bgColor: "bg-[#F0FDF4]" },
     { title: "Total Test Failed", value: totalFailed, icon: "/assets/icon/failed.svg", bgColor: "bg-[#FEF2F2]" },
-    { title: "In Progress Task", value: inProgress, icon: "/assets/icon/progress.svg", bgColor: "bg-[#FEFCE8]" },
+    { title: "In Progress Task", value: inProgressTask, icon: "/assets/icon/progress.svg", bgColor: "bg-[#FEFCE8]" },
   ];
 
   return (

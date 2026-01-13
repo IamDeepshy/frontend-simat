@@ -33,6 +33,19 @@ const TestCaseAccordion = () => {
   /* ======================================================
    * FETCH DATA
    * ====================================================== */
+  const normalizeStatus = (status) => {
+    if (status === 'PASSED') return 'PASSED';
+    if (status === 'FAILED' || status === 'BROKEN') return 'FAILED';
+    return status;
+  };
+
+  const formatDuration = (ms) => {
+    if (!ms) return '-';
+    const sec = Math.floor(ms / 1000);
+    const min = Math.floor(sec / 60);
+    return `${min}m ${sec % 60}s`;
+  };
+
   const fetchSuites = async () => {
     setLoading(true);
     try {
@@ -74,7 +87,7 @@ const TestCaseAccordion = () => {
   useEffect(() => {
     setCurrentPage(1);
     fetchSuites();
-  }, [activeFilter]);
+  }, []);
 
   /* ======================================================
    * SWEETALERT – RERUN FINISHED
@@ -113,19 +126,6 @@ const TestCaseAccordion = () => {
    * ====================================================== */
   const toggleAccordion = (id) => {
     setExpandedId(prev => (prev === id ? null : id));
-  };
-
-  const formatDuration = (ms) => {
-    if (!ms) return '-';
-    const sec = Math.floor(ms / 1000);
-    const min = Math.floor(sec / 60);
-    return `${min}m ${sec % 60}s`;
-  };
-
-  const normalizeStatus = (status) => {
-    if (status === 'PASSED') return 'PASSED';
-    if (status === 'FAILED' || status === 'BROKEN') return 'FAILED';
-    return status;
   };
 
   const getStatusBadgeClass = (status) => {
@@ -501,17 +501,12 @@ const TestCaseAccordion = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {tc.status === "PASSED" ? (
-                          <span className="text-gray-400"></span>  // atau "" kalau mau bener-bener kosong
-                        ) : (
-                          <span
-                            className={`inline-block px-6 py-0.5 rounded-full text-sm font-medium ${getTaskStatusClass(
-                              tc.taskStatus
-                            )}`}
-                          >
-                            {tc.taskStatus || ""}
+                        {tc.status !== "PASSED" && (
+                          <span className={`inline-block px-6 py-0.5 rounded-full text-sm font-medium ${getTaskStatusClass(tc.taskStatus)}`}>
+                            {tc.taskStatus}
                           </span>
                         )}
+
                       </td>
                       {/* <td className="px-6 py-4 text-center text-gray-400">-</td> */}
                       <td className="px-6 py-4 text-center font-medium text-sm text-gray-500">

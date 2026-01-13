@@ -342,7 +342,7 @@ export default function DetailSuites() {
                     <div className="flex items-center gap-2 ">
                       <i className="fa-solid fa-user text-gray-400 text-sm"></i>
                       <span className="text-sm text-gray-900 font-medium">
-                        {defectDetails?.assignDev || "-"}
+                        {defectDetails.assignDev?.username}
                       </span>
                     </div>
                   </div>
@@ -350,7 +350,7 @@ export default function DetailSuites() {
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-2">Priority</p>
                     <span className={`inline-block px-5 py-1.5 rounded-lg text-xs font-semibold uppercase ${getPriorityClass(defectDetails?.priority)}`}>
-                      {defectDetails?.priority || "None"}
+                      {defectDetails?.priority}
                     </span>
 
                   </div>
@@ -358,7 +358,7 @@ export default function DetailSuites() {
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-2">Task Status</p>
                     <span className={`inline-block px-5 py-1.5 rounded-full text-xs font-semibold ${getTaskStatusClass(defectDetails?.status)}`}>
-                      {defectDetails?.status || "To Do"}
+                      {defectDetails?.status}
                     </span>
                   </div>
 

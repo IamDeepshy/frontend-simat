@@ -181,7 +181,7 @@ export default function TaskManagement() {
     if (id in tasksByColumn) return id;
 
     return Object.keys(tasksByColumn).find((key) =>
-      tasksByColumn[key].some((task) => task.id === id)
+      tasksByColumn[key].some((task) => String(task.id) === String(id))
     );
   };
 
@@ -249,7 +249,7 @@ export default function TaskManagement() {
     // kalau pindah kolom, update DB
     if (originColumn && targetColumn && originColumn !== targetColumn) {
       try {
-        await updateTaskStatus(active.id, targetColumn);
+        await updateTaskStatus(String(active.id), targetColumn);
       } catch (err) {
         console.error("UPDATE STATUS ERROR:", err);
       }
@@ -261,7 +261,7 @@ export default function TaskManagement() {
   // komponen card task
   const TaskCard = ({ task, dragDisabled }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-      useSortable({ id: task.id, disabled: dragDisabled });
+      useSortable({ id: String(task.id), disabled: dragDisabled });
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -302,7 +302,7 @@ export default function TaskManagement() {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
-        <span>{task.assignDev}</span>
+        <span>{task.assignDev?.username}</span>
       </div>
     </div>
     );
@@ -323,7 +323,7 @@ export default function TaskManagement() {
           </span>
         </div>
         <SortableContext
-          items={columnTasks.map((task) => task.id )}
+          items={columnTasks.map((task) => String(task.id) )}
           strategy={verticalListSortingStrategy}
         >
           <div 
@@ -432,7 +432,7 @@ export default function TaskManagement() {
 
   const assigneeOptions = [
     { value: "all", label: "All Assignee" },
-      ...developers.map((d) => ({ value: d.username, label: d.username })),
+      ...developers.map((d) => ({ value: String(d.id), label: d.username })),
   ];
 
   const priorityOptions = [
@@ -446,7 +446,7 @@ export default function TaskManagement() {
   const activeTask = activeId 
     ? Object.values(tasksByColumn) 
       .flat() 
-      .find((task) => task.id === activeId) 
+      .find((task) => String(task.id) === String(activeId)) 
     : null;
 
   return (
@@ -591,7 +591,7 @@ export default function TaskManagement() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span>{activeTask.assignDev}</span>
+                <span>{activeTask.assignDev?.username}</span>
               </div>
             </div>
           ) : null}

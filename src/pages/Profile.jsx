@@ -75,7 +75,7 @@ const EditProfile = () => {
         const data = await res.json();
 
         if (!res.ok) {
-          return Swal.fire("Error", data.message, "error");
+          return Swal.fire({ icon: "error", text: data.message, title: "Error", timer: 1500, timerProgressBar: true, showConfirmButton: false, });
         }
 
         await Swal.fire({
@@ -84,7 +84,7 @@ const EditProfile = () => {
           text: data.message,
           timer: 1500,
           timerProgressBar: true,
-          showConfirmButton: true,
+          showConfirmButton: false,
         });
 
         if (data.message.includes("login")) {
