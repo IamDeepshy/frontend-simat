@@ -191,6 +191,14 @@ export default function TaskManagement() {
     setActiveId(event.active.id);
     setOriginColumn(findContainer(event.active.id)); 
   };
+  // Valid Drag Transition
+  const isValidTransition = (from, to) => {
+    // Done tidak boleh ke mana-mana
+    if (from === "done" && to !== "done") return false;
+
+    // selain itu boleh
+    return true;
+  };
 
   const handleDragOver = (event) => {
     if (!isDev) return;
@@ -201,36 +209,44 @@ export default function TaskManagement() {
     const activeContainer = findContainer(active.id);
     const overContainer = findContainer(over.id);
 
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
+    if (!activeContainer || !overContainer) return;
+
+    // 🚫 CEK RULE DI SINI
+    if (!isValidTransition(activeContainer, overContainer)) {
       return;
     }
 
+    if (activeContainer === overContainer) return;
+
     setTasksByColumn((prev) => {
-        const activeItems = prev[activeContainer];
-        const overItems = prev[overContainer];
+      const activeItems = prev[activeContainer];
+      const overItems = prev[overContainer];
 
-        const activeIndex = activeItems.findIndex(
-          (task) => String(task.id) === String(active.id)
-        );
-        const overIndex = overItems.findIndex(
-          (task) => String(task.id) === String(over.id)
-        );
+      const activeIndex = activeItems.findIndex(
+        (task) => String(task.id) === String(active.id)
+      );
 
-        const newIndex = over.id in prev ? overItems.length : overIndex >= 0 ? overIndex : 0;
+      const overIndex = overItems.findIndex(
+        (task) => String(task.id) === String(over.id)
+      );
 
-        return {
-          ...prev,
-          [activeContainer]: activeItems.filter(
-            (task) => String(task.id) !== String(active.id)
-          ),
-          [overContainer]: [
-            ...overItems.slice(0, newIndex),
-            activeItems[activeIndex],
-            ...overItems.slice(newIndex),
-          ],
-        };
-      });
-    };
+      const newIndex =
+        over.id in prev ? overItems.length : overIndex >= 0 ? overIndex : 0;
+
+      return {
+        ...prev,
+        [activeContainer]: activeItems.filter(
+          (task) => String(task.id) !== String(active.id)
+        ),
+        [overContainer]: [
+          ...overItems.slice(0, newIndex),
+          activeItems[activeIndex],
+          ...overItems.slice(newIndex),
+        ],
+      };
+    });
+  };
+
 
   const handleDragEnd = async (event) => {
     if (!isDev) return;
@@ -242,11 +258,21 @@ export default function TaskManagement() {
       setOriginColumn(null);
       return;
     }
-   
-    // target kolom = tempat drop sekarang
+
     const targetColumn = findContainer(over.id);
 
-    // kalau pindah kolom, update DB
+    // 🚫 CEK RULE FINAL
+    if (
+      originColumn &&
+      targetColumn &&
+      !isValidTransition(originColumn, targetColumn)
+    ) {
+      // rollback UI
+      setTasksByColumn((prev) => prev);
+      setOriginColumn(null);
+      return;
+    }
+
     if (originColumn && targetColumn && originColumn !== targetColumn) {
       try {
         await updateTaskStatus(String(active.id), targetColumn);
@@ -257,6 +283,7 @@ export default function TaskManagement() {
 
     setOriginColumn(null);
   };
+
 
   // komponen card task
   const TaskCard = ({ task, dragDisabled }) => {
@@ -343,8 +370,8 @@ export default function TaskManagement() {
                 </div>
               </div>
             ) : (
-              columnTasks.map((task, index) => (
-                <TaskCard key={task.id} task={task} dragDisabled={!isDev} />
+              columnTasks.map((task) => (
+                <TaskCard key={task.id} task={task} dragDisabled={!isDev || task.status === 'Done'} />
               ))
             )}
           </div>

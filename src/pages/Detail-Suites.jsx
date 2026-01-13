@@ -57,8 +57,7 @@ export default function DetailSuites() {
       for (const suite of data) {
         const found = suite.testCases.find(tc => tc.id === testCaseId);
         if (found) {
-          // console.log("FOUND:", found);
-          setTestCase({
+          const next = {
             id: found.id,
             name: found.suiteName,
             testName: found.testName || found.suiteName || found.name,
@@ -68,10 +67,12 @@ export default function DetailSuites() {
             lastRunAt: found.lastRunAt,
             status: normalizeStatus(found.status),
             duration: formatDuration(found.durationMs),
-          });
+          };
 
-          return;
+          setTestCase(next);
+          return next;
         }
+
       }
     setTestCase(null); // kalau tidak ketemu
     } catch (err) {
@@ -88,35 +89,34 @@ export default function DetailSuites() {
     }
   }, [testCaseId]);
 
-
   /* ======================================================
    * SWEETALERT – RERUN FINISHED
    * ====================================================== */
   useEffect(() => {
     if (wasRerunning && !isRerunning) {
-      fetchTestCase();
-      Swal.fire({
-        icon: "success",
-        title: "Re-run successful",
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: true,
-        html: `
-          <p class="text-sm text-gray-500">
-            Test case <b>${rerunTestName}</b> completed successfully.
-          </p>
-        `,
-        confirmButtonText: "OK",
-        buttonsStyling: false,
-        customClass: {
-          confirmButton:
-            "bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800",
-        },
-      });
+      (async () => {
+        const latest = await fetchTestCase();
+
+        const passed = latest?.status === "PASSED";
+        Swal.fire({
+          icon: passed ? "success" : "error",
+          title: passed ? "Re-run passed" : "Re-run failed",
+          html: passed
+            ? `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> passed.</p>`
+            : `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> still failed. You can create a new defect if needed.</p>`,
+          confirmButtonText: "OK",
+          buttonsStyling: false,
+          customClass: {
+            confirmButton:
+              "bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800",
+          },
+        });
+      })();
     }
 
     setWasRerunning(isRerunning);
-  }, [isRerunning, rerunTestName]);
+  }, [isRerunning, wasRerunning, rerunTestName]);
+
 
   /* ======================================================
    * LOCAL STATE
@@ -203,6 +203,11 @@ export default function DetailSuites() {
     );
   }
 
+  // disable Re run when task status is "To Do" or "In Progress"
+  const disableRerun =
+    defectDetails &&
+    (defectDetails.status === "To Do" || defectDetails.status === "In Progress");
+
   /* ======================================================
   * FETCH USER LOGIN
   * ====================================================== */
@@ -284,11 +289,21 @@ export default function DetailSuites() {
 
               {/* Action Buttons */}
               <div className="flex gap-3">
-                <button 
+                 <button 
                   onClick={() => rerun(testCase)}
-                  disabled={isRerunning}
-                  className="px-8 py-2 bg-white border border-gray-300 rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                  <img src="/assets/icon/rerun.svg" alt="Rerun icon" className="w-4 h-4" />
+                  disabled={isRerunning || disableRerun}
+                   className={`px-8 py-2 rounded-lg flex items-center gap-2 transition-all
+                      ${disableCreateDefect
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-white border border-gray-300 hover:shadow-md hover:-translate-y-0.5"}
+                    `}
+                    title={
+                      disableRerun
+                        ? "Rerun is disabled while this test case is being handled"
+                        : "Rerun this test case"
+                    }
+                  >
+                  <img src="/assets/icon/rerun.svg" alt="Rerun icon" className={`w-4 h-4 ${isRerunning || disableRerun ? "opacity-50" : ""}`}/>
                   Rerun Test
                 </button>
 
@@ -304,8 +319,8 @@ export default function DetailSuites() {
                     `}
                     title={
                       disableCreateDefect
-                        ? "Defect masih aktif dan sedang dihandle"
-                        : "Create Defect"
+                        ? "A defect is already active and being handled"
+                        : "Create a new defect for this test case"
                     }
                   >
                     <img
