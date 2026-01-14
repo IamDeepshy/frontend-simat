@@ -123,6 +123,10 @@
         newErrors.priority = 'Please select a priority';
       }
 
+      if (!formData.additionalNotes.trim()) {
+        newErrors.additionalNotes = 'Additional notes are required';
+      }
+
       setErrors(newErrors);
       return Object.keys(newErrors).length === 0;
     };
@@ -166,7 +170,7 @@
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Gagal membuat defect");
+        if (!res.ok) throw new Error(data.message || "Failed to create defect.");
 
         handleClose();
 
@@ -388,7 +392,7 @@
               {/* Additional Notes */}
               <div className="mb-4">
                 <label className="block text-base font-medium text-gray-700 mb-2">
-                  Additional Notes
+                  Additional Notes <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="additionalNotes"
@@ -397,8 +401,15 @@
                   maxLength={255}
                   placeholder="Describe the issue, steps to reproduce, expected vs actual behavior..."
                   rows="4"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
+                    errors.additionalNotes ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 />
+                {errors.additionalNotes && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.additionalNotes}
+                  </p>
+                )}
               </div>
 
               {/* Info Banner */}

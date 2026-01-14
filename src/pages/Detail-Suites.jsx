@@ -18,6 +18,8 @@ export default function DetailSuites() {
   } = useRerunTest();
 
   const [wasRerunning, setWasRerunning] = useState(false);
+  const [lastRerunStatus, setLastRerunStatus] = useState(null); 
+
 
   const { state } = useLocation();
   const testCaseId = state?.testCaseId;
@@ -97,13 +99,17 @@ export default function DetailSuites() {
       (async () => {
         const latest = await fetchTestCase();
 
-        const passed = latest?.status === "PASSED";
+        // status testcase terbaru setelah rerun
+        const status = latest?.status || null; // "PASSED" / "FAILED" / null
+        setLastRerunStatus(status);
+
+        const passed = status === "PASSED";
         Swal.fire({
           icon: passed ? "success" : "error",
           title: passed ? "Re-run passed" : "Re-run failed",
           html: passed
             ? `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> passed.</p>`
-            : `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> still failed. You can create a new defect if needed.</p>`,
+            : `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> still failed. You can reopen task or create a new defect.</p>`,
           confirmButtonText: "OK",
           buttonsStyling: false,
           customClass: {
@@ -116,6 +122,7 @@ export default function DetailSuites() {
 
     setWasRerunning(isRerunning);
   }, [isRerunning, wasRerunning, rerunTestName]);
+
 
 
   /* ======================================================
@@ -133,12 +140,15 @@ export default function DetailSuites() {
    * DEFECT STATE
    * ====================================================== */
   const [defectDetails, setDefectDetails] = useState(null);
+  console.log("defectDetails full:", defectDetails);
+
 
   const fetchActiveDefect = async () => {
-    if (!testCase || testCase.status === "PASSED") {
+    if (!testCase) {
       setDefectDetails(null);
       return;
     }
+
 
     try {
       const res = await fetch(
@@ -191,7 +201,7 @@ export default function DetailSuites() {
   // disable create defect
   const disableCreateDefect =
     defectDetails &&
-    (defectDetails.status === "To Do" || defectDetails.status === "In Progress");
+    (defectDetails.status === "To Do" || defectDetails.status === "In Progress" || defectDetails.status === "Done");
 
   if (!testCaseId) {
     return (
@@ -206,7 +216,8 @@ export default function DetailSuites() {
   // disable Re run when task status is "To Do" or "In Progress"
   const disableRerun =
     defectDetails &&
-    (defectDetails.status === "To Do" || defectDetails.status === "In Progress");
+    ["To Do", "In Progress"].includes(defectDetails.status);
+    
 
   /* ======================================================
   * FETCH USER LOGIN
@@ -230,6 +241,137 @@ export default function DetailSuites() {
   useEffect(() => {
     fetchUser();
   }, []);
+
+  // IF DONE AND PASSED TO TASK COMPLETE --------------------------------------------------------
+  // tampilkan COMPLETE kalau: QA + task Done + hasil rerun terakhir PASSED
+  const showCompleteAction =
+    user?.role === "qa" &&
+    defectDetails?.status === "Done" &&
+    lastRerunStatus === "PASSED";
+
+
+  const handleCompleteTask = async () => {
+    const result = await Swal.fire({
+      title: "Selesaikan Task?",
+      text: "Task akan dihapus dari kanban",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Ya, selesaikan",
+      cancelButtonText: "Batal",
+    });
+
+    if (!result.isConfirmed) return;
+
+    const res = await fetch(
+      `http://localhost:3000/api/tasks/${defectDetails.id}/complete`,
+      {
+        method: "PATCH",
+        credentials: "include",
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      Swal.fire("Gagal", err.message, "error");
+      return;
+    }
+
+    Swal.fire("Berhasil", "Task diselesaikan", "success");
+
+    // optional: redirect / refresh kanban
+  };
+
+  // ====================== REOPENNNNNNNNNNNNNNNNNNNNNNNN
+
+  // tampilkan DECISION kalau: QA + task Done + hasil rerun terakhir FAILED
+  const showDecisionAction =
+    user?.role === "qa" &&
+    defectDetails?.status === "Done" &&
+    lastRerunStatus === "FAILED";
+
+  // REOPEN FUNCTION
+  const reopenTask = async () => {
+    console.log("Reopen API hit:", defectDetails.id);
+
+    const taskId = defectDetails?.id;
+
+    console.log("REOPEN: taskId =", taskId);
+
+    if (!taskId) {
+      Swal.fire("Error", "Task ID tidak ditemukan", "error");
+      return;
+    }
+
+    const confirm = await Swal.fire({
+      title: "Reopen task?",
+      text: "Status task akan kembali ke To Do dan dicatat reopened date/by.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Ya, reopen",
+      cancelButtonText: "Batal",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    console.log("CALLING API: /api/tasks/" + taskId + "/reopen");
+
+    const res = await fetch(`http://localhost:3000/api/tasks/${taskId}/reopen`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    console.log("REOPEN response status:", res.status);
+
+    const body = await res.json().catch(() => ({}));
+    console.log("REOPEN response body:", body);
+
+    if (!res.ok) {
+      Swal.fire("Gagal", body.message || "Gagal reopen task", "error");
+      return;
+    }
+
+    Swal.fire("Berhasil", "Task berhasil direopen", "success");
+
+    await fetchActiveDefect(); // refresh
+  };
+
+
+  // Dcision Create New Defect or 
+
+  const handleDecisionQA = async () => {
+    const result = await Swal.fire({
+      title: "Apakah errornya sama?",
+      text: "YES → Reopen task | NO → Buat defect baru",
+      icon: "question",
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: "YES",
+      denyButtonText: "NO",
+      cancelButtonText: "Batal",
+    });
+
+    if (result.isDismissed) return;
+
+    // YES → reopen
+    if (result.isConfirmed) {
+      await reopenTask();
+      return;
+    }
+
+    // NO → create new defect
+    if (result.isDenied) {
+      setIsModalOpen(true);
+    }
+
+  };
+
+  const formatDateTime = (v) => {
+    if (!v) return "-";
+    const d = new Date(v);
+    if (Number.isNaN(d.getTime())) return "-";
+    return d.toLocaleString("id-ID");
+  };
 
 
   return (
@@ -290,10 +432,13 @@ export default function DetailSuites() {
               {/* Action Buttons */}
               <div className="flex gap-3">
                  <button 
-                  onClick={() => rerun(testCase)}
+                  onClick={() => {
+                    if (isRerunning || disableRerun) return;
+                    rerun(testCase);
+                  }}
                   disabled={isRerunning || disableRerun}
                    className={`px-8 py-2 rounded-lg flex items-center gap-2 transition-all
-                      ${disableCreateDefect
+                      ${isRerunning || disableRerun
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                         : "bg-white border border-gray-300 hover:shadow-md hover:-translate-y-0.5"}
                     `}
@@ -313,7 +458,7 @@ export default function DetailSuites() {
                     onClick={() => setIsModalOpen(true)}
                     disabled={disableCreateDefect}
                     className={`px-8 py-2 rounded-lg flex items-center gap-2 transition-all
-                      ${disableCreateDefect
+                      ${isRerunning || disableCreateDefect
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                         : "bg-black text-white hover:bg-gray-800 hover:shadow-md hover:-translate-y-0.5"}
                     `}
@@ -346,72 +491,124 @@ export default function DetailSuites() {
             </div>
             
             {/* Details */}
-            {testCase.status !== "PASSED" && defectDetails && (
-            // <div className=" items-start mb-6 ">
+            {defectDetails && (
               <div className="mb-6 pb-6 border-b border-gray-200">
                 <h5 className="text-lg font-semibold mb-4">Details</h5>
 
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-24 ">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-24">
+                  {/* Assignee */}
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-3.5">Assignee</p>
-                    <div className="flex items-center gap-2 ">
+                    <div className="flex items-center gap-2">
                       <i className="fa-solid fa-user text-gray-400 text-sm"></i>
                       <span className="text-sm text-gray-900 font-medium">
-                        {defectDetails.assignDev?.username}
+                        {defectDetails.assignDev?.username || "-"}
                       </span>
                     </div>
                   </div>
 
+                  {/* Priority */}
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-2">Priority</p>
-                    <span className={`inline-block px-5 py-1.5 rounded-lg text-xs font-semibold uppercase ${getPriorityClass(defectDetails?.priority)}`}>
-                      {defectDetails?.priority}
+                    <span
+                      className={`inline-block px-5 py-1.5 rounded-lg text-xs font-semibold uppercase ${getPriorityClass(
+                        defectDetails.priority
+                      )}`}
+                    >
+                      {defectDetails.priority}
                     </span>
-
                   </div>
 
+                  {/* Task Status */}
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-2">Task Status</p>
-                    <span className={`inline-block px-5 py-1.5 rounded-full text-xs font-semibold ${getTaskStatusClass(defectDetails?.status)}`}>
-                      {defectDetails?.status}
+                    <span
+                      className={`inline-block px-5 py-1.5 rounded-full text-xs font-semibold ${getTaskStatusClass(
+                        defectDetails.status
+                      )}`}
+                    >
+                      {defectDetails.status}
                     </span>
                   </div>
 
+                  {/* Created */}
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-3.5">Created At</p>
-                    <div className="flex items-center gap-2">
-                      <i className="fa-regular fa-calendar text-gray-400 text-sm"></i>
-                      <span className="text-sm text-gray-900 font-medium">
-                        {defectDetails?.created_at
-                          ? new Date(defectDetails.created_at).toLocaleString("id-ID", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "-"}
-                      </span>
-                    </div>
+                    <span className="text-sm text-gray-900 font-medium">
+                      {new Date(defectDetails.created_at).toLocaleString("id-ID")}
+                    </span>
                   </div>
+
+                  {/* Updated */}
                   <div>
-                    <p className="text-sm font-medium text-gray-500 mb-3.5">Update Task Status At</p>
+                    <p className="text-sm font-medium text-gray-500 mb-3.5">
+                      Update Task Status At
+                    </p>
+                    <span className="text-sm text-gray-900 font-medium">
+                      {new Date(defectDetails.updated_at).toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-3.5">
+                      Actions
+                    </p>
+
                     <div className="flex items-center gap-2">
-                      <i className="fa-regular fa-calendar text-gray-400 text-sm"></i>
+                      {showCompleteAction && (
+                        <button
+                          onClick={handleCompleteTask}
+                          className="px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                          title="Complete Task"
+                        >
+                          <i className="fa-solid fa-check"></i>
+                        </button>
+                      )}
+
+                      {showDecisionAction && (
+                        <button
+                          onClick={handleDecisionQA}
+                          className="px-3 py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600"
+                          title="QA Decision"
+                        >
+                          <i className="fa-solid fa-scale-balanced"></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  
+                </div>
+
+                {/* Row 2: Reopen metadata */}
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-24 mt-6">
+                  {/* Reopened At */}
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-3.5">Reopened At</p>
+                    <span className="text-sm text-gray-900 font-medium">
+                      {formatDateTime(defectDetails.reopenedAt)}
+                    </span>
+                  </div>
+
+                  {/* Reopened By */}
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-3.5">Reopened By</p>
+                    <div className="flex items-center gap-2">
+                      <i className="fa-solid fa-user-check text-gray-400 text-sm"></i>
                       <span className="text-sm text-gray-900 font-medium">
-                        {defectDetails?.updated_at
-                          ? new Date(defectDetails.updated_at).toLocaleString("id-ID", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "-"}
+                        {defectDetails.reopened_by?.username || "-"}
                       </span>
                     </div>
                   </div>
+
+                  {/* sisanya kosong biar sejajar 6 kolom */}
+                  <div className="hidden md:block" />
+                  <div className="hidden md:block" />
+                  <div className="hidden md:block" />
+                  <div className="hidden md:block" />
                 </div>
+
               </div>
             )}
 
