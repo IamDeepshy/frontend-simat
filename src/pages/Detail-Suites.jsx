@@ -18,7 +18,6 @@ export default function DetailSuites() {
   } = useRerunTest();
 
   const [wasRerunning, setWasRerunning] = useState(false);
-  const [lastRerunStatus, setLastRerunStatus] = useState(null); 
 
 
   const { state } = useLocation();
@@ -54,11 +53,13 @@ export default function DetailSuites() {
         { credentials: "include" }
       );
       const data = await res.json();
-
       // cari test case dari semua suite
+
       for (const suite of data) {
         const found = suite.testCases.find(tc => tc.id === testCaseId);
         if (found) {
+          const normalized = normalizeStatus(found.status);
+
           const next = {
             id: found.id,
             name: found.suiteName,
@@ -92,41 +93,7 @@ export default function DetailSuites() {
   }, [testCaseId]);
 
   /* ======================================================
-   * SWEETALERT – RERUN FINISHED
-   * ====================================================== */
-  useEffect(() => {
-    if (wasRerunning && !isRerunning) {
-      (async () => {
-        const latest = await fetchTestCase();
-
-        // status testcase terbaru setelah rerun
-        const status = latest?.status || null; // "PASSED" / "FAILED" / null
-        setLastRerunStatus(status);
-
-        const passed = status === "PASSED";
-        Swal.fire({
-          icon: passed ? "success" : "error",
-          title: passed ? "Re-run passed" : "Re-run failed",
-          html: passed
-            ? `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> passed.</p>`
-            : `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> still failed. You can reopen task or create a new defect.</p>`,
-          confirmButtonText: "OK",
-          buttonsStyling: false,
-          customClass: {
-            confirmButton:
-              "bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800",
-          },
-        });
-      })();
-    }
-
-    setWasRerunning(isRerunning);
-  }, [isRerunning, wasRerunning, rerunTestName]);
-
-
-
-  /* ======================================================
-   * LOCAL STATE
+   * STATUS BADGE STATE
    * ====================================================== */
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -142,13 +109,11 @@ export default function DetailSuites() {
   const [defectDetails, setDefectDetails] = useState(null);
   console.log("defectDetails full:", defectDetails);
 
-
   const fetchActiveDefect = async () => {
     if (!testCase) {
       setDefectDetails(null);
       return;
     }
-
 
     try {
       const res = await fetch(
@@ -164,10 +129,18 @@ export default function DetailSuites() {
       }
 
       const json = await res.json();
-      setDefectDetails(json?.data || null);
+      const defect = json?.data || null;
+
+    if (defect && (defect.is_hidden === true || String(defect.is_hidden) === "1")) {
+      setDefectDetails(null);
+      return;
+    }
+      setDefectDetails(defect);
+      return defect;
     } catch (e) {
       console.error("FETCH ACTIVE DEFECT ERROR:", e);
       setDefectDetails(null);
+      return null;
     }
   };
 
@@ -218,7 +191,6 @@ export default function DetailSuites() {
     defectDetails &&
     ["To Do", "In Progress"].includes(defectDetails.status);
     
-
   /* ======================================================
   * FETCH USER LOGIN
   * ====================================================== */
@@ -242,23 +214,43 @@ export default function DetailSuites() {
     fetchUser();
   }, []);
 
+  const isRerunAfterDone = (lastRunAt, doneUpdatedAt) => {
+    if (!lastRunAt) return false;
+    if (!doneUpdatedAt) return false;
+
+    const lastRun = new Date(lastRunAt).getTime();
+    const doneAt = new Date(doneUpdatedAt).getTime();
+
+    return lastRun > doneAt;
+  };
+
+  const rerunValid = isRerunAfterDone(testCase?.lastRunAt, defectDetails?.updated_at);
+
   // IF DONE AND PASSED TO TASK COMPLETE --------------------------------------------------------
   // tampilkan COMPLETE kalau: QA + task Done + hasil rerun terakhir PASSED
   const showCompleteAction =
     user?.role === "qa" &&
     defectDetails?.status === "Done" &&
-    lastRerunStatus === "PASSED";
-
+    rerunValid &&
+    testCase?.status === "PASSED";
 
   const handleCompleteTask = async () => {
     const result = await Swal.fire({
-      title: "Selesaikan Task?",
-      text: "Task akan dihapus dari kanban",
+      title: "Complete task?",
+      html: `
+        <p class="text-sm text-gray-500">
+          This task will be removed from the kanban board.
+        </p>
+      `,
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Ya, selesaikan",
-      cancelButtonText: "Batal",
+      confirmButtonColor: "#22c55e", 
+      cancelButtonColor: "#6b7280",  
+      confirmButtonText: "Yes, complete",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
     });
+
 
     if (!result.isConfirmed) return;
 
@@ -277,17 +269,85 @@ export default function DetailSuites() {
     }
 
     Swal.fire("Berhasil", "Task diselesaikan", "success");
-
-    // optional: redirect / refresh kanban
+    setDefectDetails(null); //hide details
+    await fetchActiveDefect(); //sync
   };
 
-  // ====================== REOPENNNNNNNNNNNNNNNNNNNNNNNN
+    /* ======================================================
+   * SWEETALERT – RERUN FINISHED
+   * ====================================================== */
+  useEffect(() => {
+    if (wasRerunning && !isRerunning) {
+      (async () => {
+        // 1) ambil status testcase terbaru
+        const latest = await fetchTestCase();
 
+        // 2) ambil defect/task terbaru
+        const latestDefect = await fetchActiveDefect();
+
+        const status = latest?.status || null; // "PASSED" / "FAILED" / null
+
+        // CASE PASSED
+        if (status === "PASSED") {
+          Swal.fire({
+            icon: "success",
+            title: "Re-run passed",
+            html: `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> passed.</p>`,
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+          });
+          return;
+        }
+
+        // CASE FAILED
+        if (status === "FAILED") {
+          const taskDone = latestDefect?.status === "Done";
+          const rerunValidNow = isRerunAfterDone(
+            latest?.lastRunAt,
+            latestDefect?.updated_at
+          );
+
+          // Failed AFTER Done (dan rerun memang setelah Done)
+          if (taskDone && rerunValidNow) {
+            Swal.fire({
+              icon: "error",
+              title: "Re-run failed",
+              html: `<p class="text-sm text-gray-500">
+                      Test case <b>${rerunTestName}</b> still failed. You can reopen task or create a new defect.
+                    </p>`,
+              showConfirmButton: false,
+              timer: 3000,
+              timerProgressBar: true,
+            });
+            return;
+          }
+
+          // Failed BEFORE Done (simple message)
+          Swal.fire({
+            icon: "error",
+            title: "Test case failed",
+            html: `<p class="text-sm text-gray-500">
+                    Test case <b>${rerunTestName}</b> failed.
+                  </p>`,
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+          });
+        }
+      })();
+    }
+
+  setWasRerunning(isRerunning);
+  }, [isRerunning, wasRerunning, rerunTestName]);
+  
+  // ====================== REOPEN
   // tampilkan DECISION kalau: QA + task Done + hasil rerun terakhir FAILED
   const showDecisionAction =
     user?.role === "qa" &&
     defectDetails?.status === "Done" &&
-    lastRerunStatus === "FAILED";
+    rerunValid &&
+    testCase?.status === "FAILED";
 
   // REOPEN FUNCTION
   const reopenTask = async () => {
@@ -304,12 +364,21 @@ export default function DetailSuites() {
 
     const confirm = await Swal.fire({
       title: "Reopen task?",
-      text: "Status task akan kembali ke To Do dan dicatat reopened date/by.",
+      html: `
+        <p class="text-sm text-gray-500">
+          The task status will be moved back to <b>To Do</b><br/>
+          and recorded as reopened.
+        </p>
+      `,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Ya, reopen",
-      cancelButtonText: "Batal",
+      confirmButtonColor: "#22c55e", 
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, reopen",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
     });
+
 
     if (!confirm.isConfirmed) return;
 
@@ -336,21 +405,29 @@ export default function DetailSuites() {
     await fetchActiveDefect(); // refresh
   };
 
+  const showActionsSection = showCompleteAction || showDecisionAction;
 
-  // Dcision Create New Defect or 
-
+  // DEcision Create New Defect or 
   const handleDecisionQA = async () => {
     const result = await Swal.fire({
-      title: "Apakah errornya sama?",
-      text: "YES → Reopen task | NO → Buat defect baru",
+      title: "Is this the same issue?",
+      html: `
+        <p class="text-sm text-gray-500">
+          If <b>Yes</b>, the task will be reopened.<br/>
+          If <b>No</b>, a new defect will be created.
+        </p>
+      `,
       icon: "question",
       showCancelButton: true,
       showDenyButton: true,
-      confirmButtonText: "YES",
-      denyButtonText: "NO",
-      cancelButtonText: "Batal",
+      confirmButtonColor: "#22c55e", 
+      denyButtonColor: "#ef4444",    
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes",
+      denyButtonText: "No",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
     });
-
     if (result.isDismissed) return;
 
     // YES → reopen
@@ -372,7 +449,13 @@ export default function DetailSuites() {
     if (Number.isNaN(d.getTime())) return "-";
     return d.toLocaleString("id-ID");
   };
+  
+  // hide reopen
+  const showReopen = !!defectDetails?.reopenedAt;
 
+  // kolom 6:5
+  const colsClass = showActionsSection ? "md:grid-cols-6" : "md:grid-cols-5";
+  const gapClass = showActionsSection ? "gap-8" : "gap-6"; 
 
   return (
     <div className="flex-grow ml-[260px] p-8 min-h-screen overflow-y-auto">
@@ -444,8 +527,8 @@ export default function DetailSuites() {
                     `}
                     title={
                       disableRerun
-                        ? "Rerun is disabled while this test case is being handled"
-                        : "Rerun this test case"
+                        ? "Rerun disabled while task is in progress"
+                        : ""
                     }
                   >
                   <img src="/assets/icon/rerun.svg" alt="Rerun icon" className={`w-4 h-4 ${isRerunning || disableRerun ? "opacity-50" : ""}`}/>
@@ -465,7 +548,7 @@ export default function DetailSuites() {
                     title={
                       disableCreateDefect
                         ? "A defect is already active and being handled"
-                        : "Create a new defect for this test case"
+                        : ""
                     }
                   >
                     <img
@@ -495,7 +578,7 @@ export default function DetailSuites() {
               <div className="mb-6 pb-6 border-b border-gray-200">
                 <h5 className="text-lg font-semibold mb-4">Details</h5>
 
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-24">
+                <div className={`grid grid-cols-1 ${colsClass} ${gapClass}`}>
                   {/* Assignee */}
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-3.5">Assignee</p>
@@ -550,65 +633,68 @@ export default function DetailSuites() {
                   </div>
                   
                   {/* Actions */}
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 mb-3.5">
-                      Actions
-                    </p>
+                  {showActionsSection && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-3.5">
+                        Actions
+                      </p>
 
-                    <div className="flex items-center gap-2">
-                      {showCompleteAction && (
-                        <button
-                          onClick={handleCompleteTask}
-                          className="px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
-                          title="Complete Task"
-                        >
-                          <i className="fa-solid fa-check"></i>
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {showCompleteAction && (
+                          <button
+                            onClick={handleCompleteTask}
+                            className="w-6 h-6 flex items-center justify-center rounded-sm
+                                      bg-green-600 text-white hover:bg-green-700"
+                            title="Complete Task"
+                          >
+                            <i className="fa-solid fa-check text-sm"></i>
+                          </button>
+                        )}
 
-                      {showDecisionAction && (
-                        <button
-                          onClick={handleDecisionQA}
-                          className="px-3 py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600"
-                          title="QA Decision"
-                        >
-                          <i className="fa-solid fa-scale-balanced"></i>
-                        </button>
-                      )}
+                        {showDecisionAction && (
+                          <button
+                            onClick={handleDecisionQA}
+                            className="w-6 h-6 flex items-center justify-center rounded-sm 
+                                      bg-yellow-500 text-white hover:bg-yellow-600"
+                            title="QA Decision"
+                          >
+                            <i className="fa-solid fa-magnifying-glass text-sm"></i>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-
-                  
+                  )}
                 </div>
 
                 {/* Row 2: Reopen metadata */}
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-24 mt-6">
-                  {/* Reopened At */}
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 mb-3.5">Reopened At</p>
-                    <span className="text-sm text-gray-900 font-medium">
-                      {formatDateTime(defectDetails.reopenedAt)}
-                    </span>
-                  </div>
-
-                  {/* Reopened By */}
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 mb-3.5">Reopened By</p>
-                    <div className="flex items-center gap-2">
-                      <i className="fa-solid fa-user-check text-gray-400 text-sm"></i>
+                {showReopen && (
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-6">
+                    {/* Reopened At */}
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-3.5">Reopened At</p>
                       <span className="text-sm text-gray-900 font-medium">
-                        {defectDetails.reopened_by?.username || "-"}
+                        {formatDateTime(defectDetails.reopenedAt)}
                       </span>
                     </div>
+
+                    {/* Reopened By */}
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-3.5">Reopened By</p>
+                      <div className="flex items-center gap-2">
+                        <i className="fa-solid fa-user-check text-gray-400 text-sm"></i>
+                        <span className="text-sm text-gray-900 font-medium">
+                          {defectDetails.reopened_by?.username || "-"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* sisanya kosong biar sejajar 6 kolom */}
+                    <div className="hidden md:block" />
+                    <div className="hidden md:block" />
+                    <div className="hidden md:block" />
+                    <div className="hidden md:block" />
                   </div>
-
-                  {/* sisanya kosong biar sejajar 6 kolom */}
-                  <div className="hidden md:block" />
-                  <div className="hidden md:block" />
-                  <div className="hidden md:block" />
-                  <div className="hidden md:block" />
-                </div>
-
+                )}
               </div>
             )}
 

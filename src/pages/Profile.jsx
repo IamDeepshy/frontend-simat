@@ -75,14 +75,14 @@ const EditProfile = () => {
         const data = await res.json();
 
         if (!res.ok) {
-          return Swal.fire({ icon: "error", text: data.message, title: "Error", timer: 1500, timerProgressBar: true, showConfirmButton: false, });
+          return Swal.fire({ icon: "error", text: data.message, title: "Error", timer: 3000, timerProgressBar: true, showConfirmButton: false, });
         }
 
         await Swal.fire({
           icon: "success",
           title: "Success",
           text: data.message,
-          timer: 1500,
+          timer: 3000,
           timerProgressBar: true,
           showConfirmButton: false,
         });

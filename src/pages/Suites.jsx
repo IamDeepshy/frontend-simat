@@ -46,6 +46,8 @@ const TestCaseAccordion = () => {
     return `${min}m ${sec % 60}s`;
   };
 
+  const [lastRerunId, setLastRerunId] = useState(null);
+
   const fetchSuites = async () => {
     setLoading(true);
     try {
@@ -77,6 +79,7 @@ const TestCaseAccordion = () => {
       }));
 
       setTestSuites(mapped);
+      return mapped; 
     } catch (err) {
       console.error(err);
     } finally {
@@ -89,37 +92,111 @@ const TestCaseAccordion = () => {
     fetchSuites();
   }, []);
 
+  const isRerunAfterDone = (lastRunAt, doneUpdatedAt) => {
+    if (!lastRunAt) return false;
+    if (!doneUpdatedAt) return false;
+
+    return new Date(lastRunAt).getTime() > new Date(doneUpdatedAt).getTime();
+  };
+
+  // FAILED sebelum done
+  const fetchTestCaseById = async (id) => {
+    const res = await fetch("http://localhost:3000/api/grouped-testcases", { credentials: "include" });
+    const data = await res.json();
+
+    for (const suite of data) {
+      const found = suite.testCases.find(tc => tc.id === id);
+      if (found) {
+        return {
+          id: found.id,
+          status: normalizeStatus(found.status),
+          lastRunAt: found.lastRunAt,
+        };
+      }
+    }
+    return null;
+  };
+
+  // FAILED setelah done
+  const fetchActiveDefectByTestSpecId = async (testSpecId) => {
+    const res = await fetch(
+      `http://localhost:3000/api/defects/active?testSpecId=${testSpecId}`,
+      { credentials: "include" }
+    );
+
+    if (!res.ok) return null;
+
+    const json = await res.json();
+    const defect = json?.data || null;
+
+    if (defect && (defect.is_hidden === true || String(defect.is_hidden) === "1")) {
+      return null;
+    }
+    return defect;
+  };
+
   /* ======================================================
    * SWEETALERT – RERUN FINISHED
    * ====================================================== */
   useEffect(() => {
-    if (wasRerunning && !isRerunning && progress === 100) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Re-run successful',
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: true,
-        html: `
-          <p class="text-sm text-gray-500">
-            Test case <b>${rerunTestName}</b> completed successfully.
-          </p>
-        `,
-        confirmButtonText: 'OK',
-        buttonsStyling: false,
-        customClass: {
-          confirmButton:
-            'bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800',
-        },
-      });
-      // AUTO REFRESH DATA SETELAH RERUN SELESAI
-      setTimeout(() => {
-        fetchSuites();
-      }, 1000);
+    if (wasRerunning && !isRerunning) {
+      (async () => {
+        if (!lastRerunId) return;
+
+        const latest = await fetchTestCaseById(lastRerunId);
+        const latestDefect = await fetchActiveDefectByTestSpecId(lastRerunId);
+
+        const status = latest?.status || null; // "PASSED" / "FAILED" / null
+
+        // CASE PASSED
+        if (status === "PASSED") {
+          Swal.fire({
+            icon: "success",
+            title: "Re-run passed",
+            html: `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> passed.</p>`,
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+          });
+          await fetchSuites(); // refresh list
+          return;
+        }
+
+        if (status === "FAILED") {
+          const taskDone = latestDefect?.status === "Done";
+          const rerunValidNow = isRerunAfterDone(latest?.lastRunAt, latestDefect?.updated_at);
+
+          if (taskDone && rerunValidNow) {
+            // CASE FAILED
+              Swal.fire({
+                icon: "error",
+                title: "Re-run failed",
+                html: `<p class="text-sm text-gray-500">
+                        Test case <b>${rerunTestName}</b> still failed. You can reopen task or create a new defect.
+                      </p>`,
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+              });
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Test case failed",
+                html: `<p class="text-sm text-gray-500">
+                        Test case <b>${rerunTestName}</b> failed.
+                      </p>`,
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+              });
+            }
+          await fetchSuites(); // refresh list
+        }  
+      })();
     }
 
-    setWasRerunning(isRerunning);
-  }, [isRerunning, progress, rerunTestName, wasRerunning]);
+  setWasRerunning(isRerunning);
+  }, [isRerunning, wasRerunning, rerunTestName]);
 
   /* ======================================================
    * HELPERS
@@ -174,6 +251,10 @@ const TestCaseAccordion = () => {
       tc.name.toLowerCase().includes(keyword) ||
       tc.testName.toLowerCase().includes(keyword)
     );
+  };
+
+  const isRerunDisabledByTask = (taskStatus) => {
+    return ["To Do", "In Progress"].includes(taskStatus);
   };
 
    /* ======================================================
@@ -518,9 +599,18 @@ const TestCaseAccordion = () => {
                             <img src="/assets/icon/view.svg" className="w-5 h-5" />
                           </Link>
                           <button
-                            onClick={() => rerun(tc)}
-                            disabled={isRerunning}
+                            onClick={() => {
+                              if (isRerunDisabledByTask(tc.taskStatus)) return; // extra safety
+                              setLastRerunId(tc.id);
+                              rerun(tc);
+                            }}
+                            disabled={isRerunning || isRerunDisabledByTask(tc.taskStatus)}
                             className="hover:opacity-70 transition-opacity disabled:opacity-40"
+                            title={
+                              isRerunDisabledByTask(tc.taskStatus)
+                                ? "Rerun disabled while task is in progress"
+                                : ""
+                            }
                           >
                             <img src="/assets/icon/rerun.svg" alt="Rerun" className="w-5 h-5" />
                           </button>

@@ -20,7 +20,11 @@ const Navbar = () => {
    const handleLogout = async () => {
       const result = await Swal.fire({
         title: "Are you sure?",
-        text: "You will be logged out from your account.",
+        html: `
+          <p class="text-sm text-gray-500">
+            You will be logged out from your account.
+          </p>
+        `,        
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#ef4444",
@@ -42,7 +46,7 @@ const Navbar = () => {
           title: "Logged out!",
           text: "You have been logged out successfully.",
           icon: "success",
-          timer: 1500,
+          timer: 3000,
           showConfirmButton: false,
           timerProgressBar: true
         });
@@ -56,18 +60,11 @@ const Navbar = () => {
         title: 'Error',
         timer: 3000,
         timerProgressBar: true,
-        showConfirmButton: true,
+        showConfirmButton: false,
         html: `
           <p class="text-sm text-gray-500">
             Failed to logout. Please try again.
-          </p>
-        `,
-        confirmButtonText: 'OK',
-        buttonsStyling: false,
-        customClass: {
-          confirmButton:
-            'bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800',
-        },
+          </p>`
       });
     }
   };

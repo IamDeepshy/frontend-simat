@@ -42,7 +42,7 @@ export default function Login() {
             icon: "error",
             title: "Login failed",
             text: data.message || "Invalid username or password.",
-            timer: 1500,
+            timer: 3000,
             showConfirmButton: false,
             timerProgressBar: true
           });
@@ -52,7 +52,7 @@ export default function Login() {
           icon: "error",
           title: "Server error",
           text: data.message || "Something went wrong. Please try again later.",
-          timer: 1500,
+          timer: 3000,
           showConfirmButton: false,
           timerProgressBar: true
         });

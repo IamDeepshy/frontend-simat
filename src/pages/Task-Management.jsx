@@ -126,6 +126,7 @@ export default function TaskManagement() {
 
         const grouped = { todo: [], inProgress: [], done: [] };
         for (const t of list) {
+          if (String(t.is_hidden) === "1" || t.is_hidden === true) continue;  
           const key = mapStatus(t.status);
           if (key) grouped[key].push(t);
         }
@@ -295,6 +296,8 @@ export default function TaskManagement() {
       transition,
   };
 
+  const isReopened = !!task.reopenedAt;
+
   return (
     // task card
     <div
@@ -307,11 +310,30 @@ export default function TaskManagement() {
       } ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-2 mb-3.5">
-        <span className={`px-3 py-1 rounded text-sm font-semibold uppercase ${getPriorityClass(task.priority)}`}>
-          {task.priority}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-3 py-1 rounded text-sm font-semibold uppercase ${getPriorityClass(task.priority)}`}>
+            {task.priority}
+          </span>
+
+          {isReopened && (
+            <span
+              className="flex items-start gap-1 px-2 py-1 rounded-md bg-yellow-100 text-yellow-700 text-[10px] font-semibold"
+              title={`Reopened at ${new Date(task.reopenedAt).toLocaleString("id-ID")}`}
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v6h6M20 20v-6h-6M5 9a7 7 0 0111-3l4 4M19 15a7 7 0 01-11 3l-4-4"
+                />
+              </svg>
+              Reopened
+            </span>
+          )}
+        </div>
+
         <div className="flex items-center gap-1 text-gray-400">
-          {/* Grip Vertical Icon - SVG */}
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
           </svg>

@@ -179,19 +179,13 @@
             icon: "success",
             timer: 3000,
             timerProgressBar: true,
-            showConfirmButton: true,
             html: `
               <p class="text-sm text-gray-500">
                 Defect report from test: <b>${testCaseName}</b><br/>
                 successfully created and assigned to <b>${devUsername}</b>.
               </p>
             `,
-            confirmButtonText: 'OK',
-            buttonsStyling: false,
-            customClass: {
-              confirmButton:
-                'bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800',
-            },
+            showConfirmButton: false,
         });
 
       } catch (err) {
@@ -203,18 +197,10 @@
           icon: "error",
           timer: 3000,
           timerProgressBar: true,
-          showConfirmButton: true,
           html: `
             <p class="text-sm text-gray-500">
               ${err.message}
-            </p>
-          `,
-          confirmButtonText: "OK",
-                    buttonsStyling: false,
-          customClass: {
-            confirmButton:
-              'bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800',
-          },
+            </p>`
         });
       }
     };
