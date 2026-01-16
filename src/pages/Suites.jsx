@@ -7,6 +7,28 @@ import Swal from 'sweetalert2';
 const ITEMS_PER_PAGE = 5;
 
 const TestCaseAccordion = () => {
+  /* ======================================================
+ * FETCH USER LOGIN
+ * ====================================================== */
+  const [user, setUser] = useState(null);
+
+  const fetchUser = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/auth/me", {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setUser(data);
+    } catch (err) {
+      console.error("FETCH USER ERROR:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
  /* ======================================================
    * RE RUN STATE
    * ====================================================== */
@@ -201,7 +223,7 @@ const TestCaseAccordion = () => {
     }
 
   setWasRerunning(isRerunning);
-  }, [isRerunning, wasRerunning, rerunTestName]);
+  }, [isRerunning, wasRerunning, rerunTestName, lastRerunId]);
 
   /* ======================================================
    * HELPERS
@@ -258,33 +280,10 @@ const TestCaseAccordion = () => {
     );
   };
 
-  const isRerunDisabledByTask = (taskStatus) => {
+  const isRerunDisabledByTask = (taskStatus, role) => {
+    if (role !== "qa") return false;
     return ["To Do", "In Progress"].includes(taskStatus);
   };
-
-   /* ======================================================
-    * FETCH USER LOGIN
-    * ====================================================== */
-    const [user, setUser] = useState(null);
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/auth/me", {
-          credentials: "include",
-        });
-  
-        if (!res.ok) return;
-  
-        const data = await res.json();
-        setUser(data);
-      } catch (err) {
-        console.error("FETCH USER ERROR:", err);
-      }
-    };
-  
-    useEffect(() => {
-      fetchUser();
-    }, []);
-
 
   /* ======================================================
    * PAGINATION LOGIC
@@ -430,7 +429,7 @@ const TestCaseAccordion = () => {
               placeholder="Search suites..."
               value={searchTerm}
               onChange={(e) => {
-                setSearchTerm(e.target.value.toUpperCase());
+                setSearchTerm(e.target.value);
                 setCurrentPage(1); // reset pagination saat search
               }}
               className="w-full pl-12 pr-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
@@ -605,15 +604,15 @@ const TestCaseAccordion = () => {
                           </Link>
                           <button
                             onClick={() => {
-                              if (isRerunDisabledByTask(tc.taskStatus)) return; // extra safety
+                              if (isRerunDisabledByTask(tc.taskStatus, user?.role)) return; // extra safety
                               setLastRerunId(tc.id);
                               rerun(tc);
                             }}
-                            disabled={isRerunning || isRerunDisabledByTask(tc.taskStatus)}
+                            disabled={isRerunning || isRerunDisabledByTask(tc.taskStatus, user?.role)}
                             className="hover:opacity-70 transition-opacity disabled:opacity-40"
                             title={
-                              isRerunDisabledByTask(tc.taskStatus)
-                                ? "Rerun disabled while task is in progress"
+                              isRerunDisabledByTask(tc.taskStatus, user?.role)
+                                ? "Rerun is disabled while the task is in progress."
                                 : ""
                             }
                           >

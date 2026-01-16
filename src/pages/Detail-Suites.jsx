@@ -8,6 +8,29 @@ import RerunLoadingModal from '../components/RerunLoadingModal';
 
 export default function DetailSuites() {
   /* ======================================================
+  * FETCH USER LOGIN
+  * ====================================================== */
+  const [user, setUser] = useState(null);
+  const fetchUser = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/auth/me", {
+        credentials: "include",
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      setUser(data);
+    } catch (err) {
+      console.error("FETCH USER ERROR:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+  
+  /* ======================================================
    * RE RUN STATE
    * ====================================================== */
   const {
@@ -188,31 +211,9 @@ export default function DetailSuites() {
 
   // disable Re run when task status is "To Do" or "In Progress"
   const disableRerun =
+    user?.role === "qa" &&
     defectDetails &&
     ["To Do", "In Progress"].includes(defectDetails.status);
-    
-  /* ======================================================
-  * FETCH USER LOGIN
-  * ====================================================== */
-  const [user, setUser] = useState(null);
-  const fetchUser = async () => {
-    try {
-      const res = await fetch("http://localhost:3000/auth/me", {
-        credentials: "include",
-      });
-
-      if (!res.ok) return;
-
-      const data = await res.json();
-      setUser(data);
-    } catch (err) {
-      console.error("FETCH USER ERROR:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchUser();
-  }, []);
 
   const isRerunAfterDone = (lastRunAt, doneUpdatedAt) => {
     if (!lastRunAt) return false;
@@ -582,7 +583,7 @@ export default function DetailSuites() {
                     `}
                     title={
                       disableRerun
-                        ? "Rerun disabled while task is in progress"
+                        ? "Rerun is disabled while the task is in progress."
                         : ""
                     }
                   >
