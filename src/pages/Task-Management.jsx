@@ -130,7 +130,6 @@ export default function TaskManagement() {
         showHidden: showHidden ? "1" : "0",
       });
 
-
       // QA boleh filter assignee
       if (user.role !== "dev") {
         params.set("assignee", filters.assignee);
@@ -144,8 +143,6 @@ export default function TaskManagement() {
       if (!res.ok) return;
 
       const list = await res.json();
-      // console.log(list.map(t => ({ id: t.id, is_hidden: t.is_hidden, type: typeof t.is_hidden, suiteName: t.suiteName })));
-
 
       const mapStatus = (s) => {
         const v = (s || "").toLowerCase().trim();
@@ -154,30 +151,36 @@ export default function TaskManagement() {
         if (v === "done") return "done";
         return null;
       };
-      console.log("HIDDEN COUNT:", list.filter(t => t.is_hidden === true).length);
 
+      // ===== STEP 1: FILTER HIDDEN =====
+      let visibleTasks = list.filter((t) => {
+        const isHidden = t.is_hidden === true || t.is_hidden === 1;
+        return showHidden || !isHidden;
+      });
 
+      // ===== STEP 2: DEDUP GLOBAL (SEMUA STATUS) =====
+      if (!showHidden) {
+        visibleTasks = filterLatestBySuiteName(visibleTasks);
+      }
+
+      // ===== STEP 3: GROUP KE STATUS =====
       const grouped = { todo: [], inProgress: [], done: [] };
 
-      for (const t of list) {
-        const isHidden = t.is_hidden === true || t.is_hidden === 1;
-
-        // SKIP JIKA showHidden = false
-        if (isHidden && !showHidden) continue;
-
+      for (const t of visibleTasks) {
         const key = mapStatus(t.status);
         if (key) grouped[key].push(t);
       }
 
-      // FILTER UNTUK STATUS DONE
-      // showHidden ON: tampilkan semua (tidak dedup sama sekali)
-      if (!showHidden) {
-        grouped.done = filterLatestBySuiteName(grouped.done);
-      } else {
-        grouped.done.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      // ===== STEP 4: SORT JIKA showHidden =====
+      if (showHidden) {
+        Object.keys(grouped).forEach((k) => {
+          grouped[k].sort(
+            (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+          );
+        });
       }
-      setTasksByColumn(grouped);
 
+      setTasksByColumn(grouped);
 
     };
 
