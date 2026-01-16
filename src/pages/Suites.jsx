@@ -153,7 +153,9 @@ const TestCaseAccordion = () => {
           Swal.fire({
             icon: "success",
             title: "Re-run passed",
-            html: `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> passed.</p>`,
+            html: `<p class="text-sm text-gray-500">
+                      Test case <b>${rerunTestName}</b> passed.
+                  </p>`,
             showConfirmButton: false,
             timer: 3000,
             timerProgressBar: true,
@@ -164,7 +166,10 @@ const TestCaseAccordion = () => {
 
         if (status === "FAILED") {
           const taskDone = latestDefect?.status === "Done";
-          const rerunValidNow = isRerunAfterDone(latest?.lastRunAt, latestDefect?.updated_at);
+          const rerunValidNow = isRerunAfterDone(
+            latest?.lastRunAt, 
+            latestDefect?.updated_at
+          );
 
           if (taskDone && rerunValidNow) {
             // CASE FAILED

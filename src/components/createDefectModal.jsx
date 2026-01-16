@@ -197,6 +197,7 @@
           icon: "error",
           timer: 3000,
           timerProgressBar: true,
+          showConfirmButton: false,
           html: `
             <p class="text-sm text-gray-500">
               ${err.message}

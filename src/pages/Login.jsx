@@ -18,8 +18,15 @@ export default function Login() {
     if (!username || !password) {
       return Swal.fire({
         icon: "warning",
-        title: "Missing fields",
-        text: "Please enter both username and password.",
+        title: "Missing required fields",
+        html: `
+          <p class="text-sm text-gray-500">
+            Please enter both <b>username</b> and <b>password</b>.
+          </p>
+        `,
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
       });
     }
 
@@ -41,22 +48,31 @@ export default function Login() {
           return Swal.fire({
             icon: "error",
             title: "Login failed",
-            text: data.message || "Invalid username or password.",
+            html: `
+              <p class="text-sm text-gray-500">
+                Invalid username or password.
+              </p>
+            `,
             timer: 3000,
+            timerProgressBar: true,
             showConfirmButton: false,
-            timerProgressBar: true
           });
         }
 
         return Swal.fire({
           icon: "error",
           title: "Server error",
-          text: data.message || "Something went wrong. Please try again later.",
+          html: `
+            <p class="text-sm text-gray-500">
+              Something went wrong. Please try again later
+            </p>
+          `,
           timer: 3000,
+          timerProgressBar: true,
           showConfirmButton: false,
-          timerProgressBar: true
         });
       }
+
 
       await refreshUser();
 
@@ -83,7 +99,15 @@ export default function Login() {
       Swal.fire({
         icon: "error",
         title: "Network error",
-        text: "Unable to connect to server. Please check your connection.",
+        html: `
+          <p class="text-sm text-gray-500">
+            Unable to connect to the server.<br/>
+            Please check your internet connection.
+          </p>
+        `,
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
       });
     }
   };

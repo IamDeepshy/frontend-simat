@@ -49,13 +49,36 @@ const EditProfile = () => {
     const handleSubmit = async (e) => {
       e.preventDefault();
 
-      if (!username && !newPassword) {
-        return Swal.fire("Info", "Tidak ada perubahan", "info");
-      }
+    if (!username && !newPassword) {
+      return Swal.fire({
+        icon: "info",
+        title: "No changes detected",
+        html: `
+          <p class="text-sm text-gray-500">
+            There are no changes to save.
+          </p>
+        `,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        timer: 3000,
+      });
+    }
 
-      if (newPassword && newPassword !== confirmPassword) {
-        return Swal.fire("Error", "Konfirmasi password tidak cocok", "error");
-      }
+    if (newPassword && newPassword !== confirmPassword) {
+      return Swal.fire({
+        icon: "error",
+        title: "Password mismatch",
+        html: `
+          <p class="text-sm text-gray-500">
+            The confirmation password doesn't match the new password.
+          </p>
+        `,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        timer: 3000,
+      });
+    }
+
 
       setLoading(true);
 
@@ -75,13 +98,28 @@ const EditProfile = () => {
         const data = await res.json();
 
         if (!res.ok) {
-          return Swal.fire({ icon: "error", text: data.message, title: "Error", timer: 3000, timerProgressBar: true, showConfirmButton: false, });
+          return Swal.fire({
+            icon: "error",
+            title: "Action failed",
+            html: `
+              <p class="text-sm text-gray-500">
+                ${data.message || "Something went wrong. Please try again."}
+              </p>
+            `,
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+          });
         }
 
         await Swal.fire({
           icon: "success",
-          title: "Success",
-          text: data.message,
+          title: "Action completed",
+          html: `
+            <p class="text-sm text-gray-500">
+              ${data.message}
+            </p>
+          `,
           timer: 3000,
           timerProgressBar: true,
           showConfirmButton: false,
@@ -91,12 +129,20 @@ const EditProfile = () => {
           navigate("/login");
         }
 
-         window.location.reload();
+        window.location.reload();
         } catch (err) {
         Swal.fire({
           icon: "error",
-          title: "Error",
-          text: "Server error. Please try again later.",
+          title: "Server error",
+          html: `
+            <p class="text-sm text-gray-500">
+              Something went wrong on the server.<br/>
+              Please try again later.
+            </p>
+          `,
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false,
         });
         } finally {
           setLoading(false);

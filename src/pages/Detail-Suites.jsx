@@ -264,13 +264,35 @@ export default function DetailSuites() {
 
     if (!res.ok) {
       const err = await res.json();
-      Swal.fire("Gagal", err.message, "error");
-      return;
+      return Swal.fire({
+        icon: "error",
+        title: "Action failed",
+        html: `
+          <p class="text-sm text-gray-500">
+            ${err.message || "Something went wrong. Please try again."}
+          </p>
+        `,
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
     }
 
-    Swal.fire("Success", "Task completed", "success");
-    setDefectDetails(null); //hide details
-    await fetchActiveDefect(); //sync
+    Swal.fire({
+      icon: "success",
+      title: "Task completed",
+      html: `
+        <p class="text-sm text-gray-500">
+          The task has been successfully completed.
+        </p>
+      `,
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+    });
+
+    setDefectDetails(null); // hide details
+    await fetchActiveDefect(); // sync
   };
 
     /* ======================================================
@@ -292,7 +314,9 @@ export default function DetailSuites() {
           Swal.fire({
             icon: "success",
             title: "Re-run passed",
-            html: `<p class="text-sm text-gray-500">Test case <b>${rerunTestName}</b> passed.</p>`,
+            html: `<p class="text-sm text-gray-500">
+                      Test case <b>${rerunTestName}</b> passed.
+                  </p>`,
             showConfirmButton: false,
             timer: 3000,
             timerProgressBar: true,
@@ -314,7 +338,7 @@ export default function DetailSuites() {
               icon: "error",
               title: "Re-run failed",
               html: `<p class="text-sm text-gray-500">
-                      Test case <b>${rerunTestName}</b> still failed.
+                      Test case <b>${rerunTestName}</b> still failed. You can reopen task or create a new defect.
                     </p>`,
               showConfirmButton: false,
               timer: 3000,
@@ -396,8 +420,18 @@ export default function DetailSuites() {
     console.log("REOPEN: taskId =", taskId);
 
     if (!taskId) {
-      Swal.fire("Error", "Task ID tidak ditemukan", "error");
-      return;
+      return Swal.fire({
+        icon: "error",
+        title: "Task not found",
+        html: `
+          <p class="text-sm text-gray-500">
+            The task ID could not be found. Please refresh the page and try again.
+          </p>
+        `,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        timer: 3000,
+      });
     }
 
     const confirm = await Swal.fire({
@@ -434,12 +468,31 @@ export default function DetailSuites() {
     console.log("REOPEN response body:", body);
 
     if (!res.ok) {
-      Swal.fire("Failed", body.message || "Failed to reopen task", "error");
-      return;
+      return Swal.fire({
+        icon: "error",
+        title: "Failed to reopen task",
+        html: `
+          <p class="text-sm text-gray-500">
+            ${body.message || "The task could not be reopened. Please try again."}
+          </p>
+        `,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        timer: 3000,
+      });
     }
 
-    Swal.fire("Success", "Task successfully reopened", "success");
-
+    Swal.fire({
+      icon: "success",
+      title: "Task reopened",
+      html: `
+        <p class="text-sm text-gray-500">
+          The task has been successfully reopened.
+        </p>
+      `,
+      timerProgressBar: true,
+      timer: 3000,
+    });
     await fetchActiveDefect(); // refresh
   };
 
