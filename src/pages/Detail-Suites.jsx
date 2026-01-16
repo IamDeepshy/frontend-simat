@@ -268,7 +268,7 @@ export default function DetailSuites() {
       return;
     }
 
-    Swal.fire("Berhasil", "Task diselesaikan", "success");
+    Swal.fire("Success", "Task completed", "success");
     setDefectDetails(null); //hide details
     await fetchActiveDefect(); //sync
   };
@@ -314,7 +314,7 @@ export default function DetailSuites() {
               icon: "error",
               title: "Re-run failed",
               html: `<p class="text-sm text-gray-500">
-                      Test case <b>${rerunTestName}</b> still failed. You can reopen task or create a new defect.
+                      Test case <b>${rerunTestName}</b> still failed.
                     </p>`,
               showConfirmButton: false,
               timer: 3000,
@@ -349,6 +349,44 @@ export default function DetailSuites() {
     rerunValid &&
     testCase?.status === "FAILED";
 
+  // DEcision Create New Defect or 
+  const handleDecisionQA = async () => {
+    const result = await Swal.fire({
+      title: "Is this the same issue?",
+      html: `
+        <p class="text-sm text-gray-500">
+          If <b>Yes</b>, the task will be reopened.<br/>
+          If <b>No</b>, a new defect will be created.
+        </p>
+      `,
+      icon: "question",
+      showCloseButton: true,
+      showCancelButton: false,
+
+      showDenyButton: true,
+      confirmButtonColor: "#22c55e",
+      denyButtonColor: "#ef4444",
+
+      confirmButtonText: "Yes",
+      denyButtonText: "No",
+
+      reverseButtons: true,
+    });
+
+    // ❌ Klik X / ESC / klik luar modal
+    if (result.isDismissed) return;
+
+    // ✅ YES → Reopen task
+    if (result.isConfirmed) {
+      await reopenTask();
+      return;
+    }
+
+    // ❌ NO → Create new defect
+    if (result.isDenied) {
+      setIsModalOpen(true);
+    }
+  };
   // REOPEN FUNCTION
   const reopenTask = async () => {
     console.log("Reopen API hit:", defectDetails.id);
@@ -396,52 +434,16 @@ export default function DetailSuites() {
     console.log("REOPEN response body:", body);
 
     if (!res.ok) {
-      Swal.fire("Gagal", body.message || "Gagal reopen task", "error");
+      Swal.fire("Failed", body.message || "Failed to reopen task", "error");
       return;
     }
 
-    Swal.fire("Berhasil", "Task berhasil direopen", "success");
+    Swal.fire("Success", "Task successfully reopened", "success");
 
     await fetchActiveDefect(); // refresh
   };
 
   const showActionsSection = showCompleteAction || showDecisionAction;
-
-  // DEcision Create New Defect or 
-  const handleDecisionQA = async () => {
-    const result = await Swal.fire({
-      title: "Is this the same issue?",
-      html: `
-        <p class="text-sm text-gray-500">
-          If <b>Yes</b>, the task will be reopened.<br/>
-          If <b>No</b>, a new defect will be created.
-        </p>
-      `,
-      icon: "question",
-      showCancelButton: true,
-      showDenyButton: true,
-      confirmButtonColor: "#22c55e", 
-      denyButtonColor: "#ef4444",    
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes",
-      denyButtonText: "No",
-      cancelButtonText: "Cancel",
-      reverseButtons: true,
-    });
-    if (result.isDismissed) return;
-
-    // YES → reopen
-    if (result.isConfirmed) {
-      await reopenTask();
-      return;
-    }
-
-    // NO → create new defect
-    if (result.isDenied) {
-      setIsModalOpen(true);
-    }
-
-  };
 
   const formatDateTime = (v) => {
     if (!v) return "-";

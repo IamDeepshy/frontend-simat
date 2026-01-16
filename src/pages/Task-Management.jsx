@@ -92,50 +92,97 @@ export default function TaskManagement() {
     }
   };
 
+  const [refreshKey, setRefreshKey] = useState(0); //auto refresh
+
+  const [showHidden, setShowHidden] = useState(false); // show hidden tasks
+
+
+  // Function to filter latest task by suiteName
+  const filterLatestBySuiteName = (tasks) => {
+    const map = new Map();
+
+    for (const task of tasks) {
+      const key = task.suiteName || "__NO_SUITE__";
+
+      if (!map.has(key)) {
+        map.set(key, task);
+      } else {
+        const existing = map.get(key);
+
+        // pilih yang paling baru
+        if (new Date(task.updatedAt) > new Date(existing.updatedAt)) {
+          map.set(key, task);
+        }
+      }
+    }
+
+    return Array.from(map.values());
+  };
+
   // filter kanban
   useEffect(() => {
     if (!user) return;
 
     const fetchTasks = async () => {
-        const params = new URLSearchParams({
-          status: filters.status,
-          priority: filters.priority,
-        });
+      const params = new URLSearchParams({
+        status: filters.status,
+        priority: filters.priority,
+        showHidden: showHidden ? "1" : "0",
+      });
 
-        // QA boleh filter assignee
-        if (user.role !== "dev") {
-          params.set("assignee", filters.assignee);
-        }
 
-        const res = await fetch(
-          `http://localhost:3000/api/task-management?${params.toString()}`,
-          { credentials: "include" }
-        );
+      // QA boleh filter assignee
+      if (user.role !== "dev") {
+        params.set("assignee", filters.assignee);
+      }
 
-        if (!res.ok) return;
+      const res = await fetch(
+        `http://localhost:3000/api/task-management?${params.toString()}`,
+        { credentials: "include" }
+      );
 
-        const list = await res.json();
+      if (!res.ok) return;
 
-        const mapStatus = (s) => {
-          const v = (s || "").toLowerCase().trim();
-          if (v === "todo" || v === "to do") return "todo";
-          if (v === "inprogress" || v === "in progress") return "inProgress";
-          if (v === "done") return "done";
-          return null;
-        };
+      const list = await res.json();
+      // console.log(list.map(t => ({ id: t.id, is_hidden: t.is_hidden, type: typeof t.is_hidden, suiteName: t.suiteName })));
 
-        const grouped = { todo: [], inProgress: [], done: [] };
-        for (const t of list) {
-          if (String(t.is_hidden) === "1" || t.is_hidden === true) continue;  
-          const key = mapStatus(t.status);
-          if (key) grouped[key].push(t);
-        }
-        setTasksByColumn(grouped);
 
+      const mapStatus = (s) => {
+        const v = (s || "").toLowerCase().trim();
+        if (v === "todo" || v === "to do") return "todo";
+        if (v === "inprogress" || v === "in progress") return "inProgress";
+        if (v === "done") return "done";
+        return null;
       };
+      console.log("HIDDEN COUNT:", list.filter(t => t.is_hidden === true).length);
+
+
+      const grouped = { todo: [], inProgress: [], done: [] };
+
+      for (const t of list) {
+        const isHidden = t.is_hidden === true || t.is_hidden === 1;
+
+        // SKIP JIKA showHidden = false
+        if (isHidden && !showHidden) continue;
+
+        const key = mapStatus(t.status);
+        if (key) grouped[key].push(t);
+      }
+
+      // FILTER UNTUK STATUS DONE
+      // showHidden ON: tampilkan semua (tidak dedup sama sekali)
+      if (!showHidden) {
+        grouped.done = filterLatestBySuiteName(grouped.done);
+      } else {
+        grouped.done.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      }
+      setTasksByColumn(grouped);
+
+
+    };
 
       fetchTasks();
-    }, [user, filters.status, filters.priority, filters.assignee]);
+    }, [user, filters.status, filters.priority, filters.assignee, refreshKey, showHidden]);
 
 
   // ROLE CHECK (enable/disable drag)
@@ -262,7 +309,7 @@ export default function TaskManagement() {
 
     const targetColumn = findContainer(over.id);
 
-    // 🚫 CEK RULE FINAL
+    //  CEK RULE FINAL
     if (
       originColumn &&
       targetColumn &&
@@ -277,10 +324,17 @@ export default function TaskManagement() {
     if (originColumn && targetColumn && originColumn !== targetColumn) {
       try {
         await updateTaskStatus(String(active.id), targetColumn);
+
+        // AUTO REFRESH TASK STATUS DONE
+        if (targetColumn === "done") {
+          setRefreshKey((prev) => prev + 1);
+        }
+
       } catch (err) {
         console.error("UPDATE STATUS ERROR:", err);
       }
     }
+
 
     setOriginColumn(null);
   };
@@ -297,6 +351,7 @@ export default function TaskManagement() {
   };
 
   const isReopened = !!task.reopenedAt;
+  const isHidden = task.is_hidden === true || task.is_hidden === 1;
 
   return (
     // task card
@@ -314,6 +369,16 @@ export default function TaskManagement() {
           <span className={`px-3 py-1 rounded text-sm font-semibold uppercase ${getPriorityClass(task.priority)}`}>
             {task.priority}
           </span>
+          {/* Hidden badge */}
+          {isHidden && (
+            <span
+              className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-100 text-purple-700 text-[10px] font-semibold uppercase"
+              title="This task is hidden"
+            >
+             <i class="fa-regular fa-eye-slash"></i>
+              Hidden
+            </span>
+          )}
 
           {isReopened && (
             <span
@@ -564,7 +629,6 @@ export default function TaskManagement() {
         />
       </div>
 
-
       {/* tip hanya tampil kalau role developer */}
       {isDev && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-3">
@@ -580,6 +644,23 @@ export default function TaskManagement() {
           </p>
         </div>
       )}
+
+      {/* Show Hidden Tasks Checkbox */}
+      <div className="flex items-center gap-2 mt-2 mb-6">
+        <input
+          type="checkbox"
+          id="showHidden"
+          checked={showHidden}
+          onChange={(e) => setShowHidden(e.target.checked)}
+          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+        />
+        <label
+          htmlFor="showHidden"
+          className="text-sm text-gray-700 select-none cursor-pointer"
+        >
+          Show hidden tasks
+        </label>
+      </div>
 
       {/* Kanban Board with Drag & Drop */}
       <DndContext
