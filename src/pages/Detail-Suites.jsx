@@ -249,7 +249,7 @@ export default function DetailSuites() {
       cancelButtonColor: "#6b7280",  
       confirmButtonText: "Yes, complete",
       cancelButtonText: "Cancel",
-      reverseButtons: true,
+      reverseButtons: false,
     });
 
 
@@ -379,23 +379,47 @@ export default function DetailSuites() {
     const result = await Swal.fire({
       title: "Is this the same issue?",
       html: `
-        <p class="text-sm text-gray-500">
-          If <b>Yes</b>, the task will be reopened.<br/>
-          If <b>No</b>, a new defect will be created.
-        </p>
+      <div style="display:flex; justify-content:center; margin-top:8px;">
+        <div style="
+          background:#eff6ff;          
+          border:1px solid #bfdbfe;   
+          border-radius:8px;
+          padding:12px 14px;
+          max-width:360px;
+          display:flex;
+          gap:10px;
+          align-items:flex-start;
+          color:#1d4ed8;              
+          font-size:14px;
+          text-align:left;
+        ">
+          <svg
+            style="width:20px; height:20px; flex-shrink:0; margin-top:2px; fill:#3b82f6;"
+            viewBox="0 0 20 20"
+          >
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+          </svg>
+
+          <div>
+            <strong>Tip:</strong><br/>
+            If <b>Yes</b>, the task will be reopened.<br/>
+            If <b>No</b>, a new defect will be created.
+          </div>
+        </div>
+      </div>
       `,
       icon: "question",
       showCloseButton: true,
       showCancelButton: false,
 
       showDenyButton: true,
-      confirmButtonColor: "#22c55e",
+      confirmButtonColor: "#16A34A",
       denyButtonColor: "#ef4444",
 
       confirmButtonText: "Yes",
       denyButtonText: "No",
 
-      reverseButtons: true,
+      reverseButtons: false,
     });
 
     // ❌ Klik X / ESC / klik luar modal
@@ -449,7 +473,7 @@ export default function DetailSuites() {
       cancelButtonColor: "#6b7280",
       confirmButtonText: "Yes, reopen",
       cancelButtonText: "Cancel",
-      reverseButtons: true,
+      reverseButtons: false,
     });
 
 

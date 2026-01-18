@@ -10,7 +10,6 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -20,20 +19,9 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 export default function TaskManagement() {
-  // query API tasks
-  const [filters, setFilters] = useState({
-    status: 'all',
-    assignee: 'all',
-    priority: 'all'
-  });
-
-  const [openDropdown, setOpenDropdown] = useState(null);
-
-  // container awal
-  const [originColumn, setOriginColumn] = useState(null);
-
-  // ID task yang sedang di drag (DragOverlay)
-  const [activeId, setActiveId] = useState(null);
+  // ========================================================================
+  // state user login (GET /auth/me)
+  // ========================================================================
 
   // state user
   const [user, setUser] = useState(null);
@@ -58,7 +46,7 @@ export default function TaskManagement() {
     fetchUser();
   }, []);
 
-  // ambil list role developer (filter role QA)
+  // ambil list role developer (untuk filter assignee oleh QA)
   const [developers, setDevelopers] = useState([]);
 
   useEffect(() => {
@@ -74,6 +62,47 @@ export default function TaskManagement() {
 
     fetchDevelopers();
   }, [user]);
+  
+  // ========================================================================
+  // DROPDOWN OPTIONS
+  // ========================================================================
+  // filters (query params untuk GET /api/task-management)
+  const [filters, setFilters] = useState({
+    status: 'all',
+    assignee: 'all',
+    priority: 'all'
+  });
+
+  const [openDropdown, setOpenDropdown] = useState(null);
+
+  // OPTIONS
+  const statusOptions = [
+    { value: 'all', label: 'All Status' },
+    { value: 'To Do', label: 'To Do' },
+    { value: 'In Progress', label: 'In Progress' },
+    { value: 'Done', label: 'Done' }
+  ];
+
+  const priorityOptions = [
+    { value: 'all', label: 'All Priority' },
+    { value: 'High', label: 'High' },
+    { value: 'Medium', label: 'Medium' },
+    { value: 'Low', label: 'Low' }
+  ];
+  
+  const assigneeOptions = [
+    { value: "all", label: "All Assignee" },
+      ...developers.map((d) => ({ value: String(d.id), label: d.username })),
+  ];
+
+  // container awal (kolom asal sebelum dipindah (untuk validasi rule))
+  const [originColumn, setOriginColumn] = useState(null);
+
+  // ID task yang sedang di drag (DragOverlay)
+  const [activeId, setActiveId] = useState(null);
+
+  // rollback UI beneran kalau invalid / PATCH gagal
+  const snapshotRef = useRef(null); // [FIX]
 
   // kolom kanban
   const [tasksByColumn, setTasksByColumn] = useState({
@@ -92,12 +121,13 @@ export default function TaskManagement() {
     }
   };
 
-  const [refreshKey, setRefreshKey] = useState(0); //auto refresh
+  // auto refresh setelah done
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // show hidden tasks
+  const [showHidden, setShowHidden] = useState(false);
 
-  const [showHidden, setShowHidden] = useState(false); // show hidden tasks
-
-
-  // Function to filter latest task by suiteName
+  // Function to filter latest task by suiteName (untuk menampilkan di kanban)
   const filterLatestBySuiteName = (tasks) => {
     const map = new Map();
 
@@ -119,11 +149,12 @@ export default function TaskManagement() {
     return Array.from(map.values());
   };
 
-  // filter kanban
+  // filter kanban 
   useEffect(() => {
     if (!user) return;
 
     const fetchTasks = async () => {
+      // build params (match BE)
       const params = new URLSearchParams({
         status: filters.status,
         priority: filters.priority,
@@ -135,6 +166,7 @@ export default function TaskManagement() {
         params.set("assignee", filters.assignee);
       }
 
+      // fetch list
       const res = await fetch(
         `http://localhost:3000/api/task-management?${params.toString()}`,
         { credentials: "include" }
@@ -144,6 +176,7 @@ export default function TaskManagement() {
 
       const list = await res.json();
 
+      // map backend status -> column key FE
       const mapStatus = (s) => {
         const v = (s || "").toLowerCase().trim();
         if (v === "todo" || v === "to do") return "todo";
@@ -152,18 +185,15 @@ export default function TaskManagement() {
         return null;
       };
 
-      // ===== STEP 1: FILTER HIDDEN =====
-      let visibleTasks = list.filter((t) => {
-        const isHidden = t.is_hidden === true || t.is_hidden === 1;
-        return showHidden || !isHidden;
-      });
+      // ===== source data dr backend (be handle hidden) =====
+      let visibleTasks = list;
 
-      // ===== STEP 2: DEDUP GLOBAL (SEMUA STATUS) =====
+      // ===== dedup global (semua status) =====
       if (!showHidden) {
         visibleTasks = filterLatestBySuiteName(visibleTasks);
       }
 
-      // ===== STEP 3: GROUP KE STATUS =====
+      // ===== grouping ke status =====
       const grouped = { todo: [], inProgress: [], done: [] };
 
       for (const t of visibleTasks) {
@@ -171,7 +201,7 @@ export default function TaskManagement() {
         if (key) grouped[key].push(t);
       }
 
-      // ===== STEP 4: SORT JIKA showHidden =====
+      // ===== SORT JIKA showHidden =====
       if (showHidden) {
         Object.keys(grouped).forEach((k) => {
           grouped[k].sort(
@@ -179,18 +209,17 @@ export default function TaskManagement() {
           );
         });
       }
-
       setTasksByColumn(grouped);
-
     };
 
-      fetchTasks();
+    fetchTasks();
     }, [user, filters.status, filters.priority, filters.assignee, refreshKey, showHidden]);
 
 
-  // ROLE CHECK (enable/disable drag)
+  // ROLE CHECK (if dev, enable/disable drag)
   const isDev = user?.role === "dev";
   
+  // mapping columnId -> status string backend
   const columnToStatus = (columnId) => {
     if (columnId === "todo") return "To Do";
     if (columnId === "inProgress") return "In Progress";
@@ -198,6 +227,7 @@ export default function TaskManagement() {
     return null;
   };
 
+  // update status task (dev)
   const updateTaskStatus = async (taskId, newColumnId) => {
     const newStatus = columnToStatus(newColumnId);
     if (!newStatus) return;
@@ -236,21 +266,25 @@ export default function TaskManagement() {
     );
   };
 
-  // handle drag and drop
-  const handleDragStart = (event) => {
-    if (!isDev) return; // selain dev tidak boleh drag
-    setActiveId(event.active.id);
-    setOriginColumn(findContainer(event.active.id)); 
-  };
-  // Valid Drag Transition
+  // transisi drag 
   const isValidTransition = (from, to) => {
-    // Done tidak boleh ke mana-mana
+    // done tidak boleh balik (ibarat selesai)
     if (from === "done" && to !== "done") return false;
 
     // selain itu boleh
     return true;
   };
 
+  // handle drag start
+  const handleDragStart = (event) => {
+    if (!isDev) return; // selain dev tidak boleh drag
+
+    snapshotRef.current = JSON.parse(JSON.stringify(tasksByColumn));  // rollback beneran kalau invalid/error
+    setActiveId(event.active.id);
+    setOriginColumn(findContainer(event.active.id)); 
+  };
+
+  // drag over 
   const handleDragOver = (event) => {
     if (!isDev) return;
 
@@ -259,10 +293,9 @@ export default function TaskManagement() {
 
     const activeContainer = findContainer(active.id);
     const overContainer = findContainer(over.id);
-
     if (!activeContainer || !overContainer) return;
 
-    // 🚫 CEK RULE DI SINI
+    // CEK RULE DI SINI
     if (!isValidTransition(activeContainer, overContainer)) {
       return;
     }
@@ -298,7 +331,7 @@ export default function TaskManagement() {
     });
   };
 
-
+  // drag end (rule final)
   const handleDragEnd = async (event) => {
     if (!isDev) return;
 
@@ -319,7 +352,7 @@ export default function TaskManagement() {
       !isValidTransition(originColumn, targetColumn)
     ) {
       // rollback UI
-      setTasksByColumn((prev) => prev);
+      setTasksByColumn(snapshotRef.current);
       setOriginColumn(null);
       return;
     }
@@ -335,15 +368,14 @@ export default function TaskManagement() {
 
       } catch (err) {
         console.error("UPDATE STATUS ERROR:", err);
+        // rollback kalau backend reject
+        setTasksByColumn(snapshotRef.current);
       }
     }
-
-
     setOriginColumn(null);
   };
 
-
-  // komponen card task
+  // komponen taskcard
   const TaskCard = ({ task, dragDisabled }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
       useSortable({ id: String(task.id), disabled: dragDisabled });
@@ -354,7 +386,6 @@ export default function TaskManagement() {
   };
 
   const isReopened = !!task.reopenedAt;
-  const isHidden = task.is_hidden === true || task.is_hidden === 1;
 
   return (
     // task card
@@ -372,17 +403,6 @@ export default function TaskManagement() {
           <span className={`px-3 py-1 rounded text-sm font-semibold uppercase ${getPriorityClass(task.priority)}`}>
             {task.priority}
           </span>
-          {/* Hidden badge */}
-          {isHidden && (
-            <span
-              className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-100 text-purple-700 text-[10px] font-semibold uppercase"
-              title="This task is hidden"
-            >
-             <i class="fa-regular fa-eye-slash"></i>
-              Hidden
-            </span>
-          )}
-
           {isReopened && (
             <span
               className="flex items-start gap-1 px-2 py-1 rounded-md bg-yellow-100 text-yellow-700 text-[10px] font-semibold"
@@ -538,26 +558,6 @@ export default function TaskManagement() {
       </div>
     );
   };
-
-  // Options for dropdowns
-  const statusOptions = [
-    { value: 'all', label: 'All Status' },
-    { value: 'To Do', label: 'To Do' },
-    { value: 'In Progress', label: 'In Progress' },
-    { value: 'Done', label: 'Done' }
-  ];
-
-  const assigneeOptions = [
-    { value: "all", label: "All Assignee" },
-      ...developers.map((d) => ({ value: String(d.id), label: d.username })),
-  ];
-
-  const priorityOptions = [
-    { value: 'all', label: 'All Priority' },
-    { value: 'high', label: 'High' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'low', label: 'Low' }
-  ];
 
   // get active task untuk drag overlay
   const activeTask = activeId 

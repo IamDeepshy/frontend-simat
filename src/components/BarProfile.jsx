@@ -31,7 +31,7 @@ const Navbar = () => {
         cancelButtonColor: "#6b7280",
         confirmButtonText: "Yes, logout",
         cancelButtonText: "Cancel",
-        reverseButtons: true
+        reverseButtons: false
       });
   
       if (!result.isConfirmed) return;
