@@ -85,9 +85,9 @@ export default function TaskManagement() {
 
   const priorityOptions = [
     { value: 'all', label: 'All Priority' },
-    { value: 'High', label: 'High' },
-    { value: 'Medium', label: 'Medium' },
-    { value: 'Low', label: 'Low' }
+    { value: 'high', label: 'High' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'low', label: 'Low' }
   ];
   
   const assigneeOptions = [

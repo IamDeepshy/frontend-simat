@@ -2,6 +2,7 @@
   import Swal from "sweetalert2";
 
   const CreateDefectModal = ({ isOpen, onClose, testCaseName, testSpecId }) => {
+    // save input form di state
     const [formData, setFormData] = useState({
       defectTitle: '',
       assignedTo: '',
@@ -9,17 +10,20 @@
       additionalNotes: ''
     });
 
+    // save error + submit error di state
     const [errors, setErrors] = useState({});
     
     // State untuk track dropdown mana yang open
     const [openDropdown, setOpenDropdown] = useState(null);
     
-    // Refs untuk detect click outside
+    // Refs untuk detect click di luar dropdown
     const assigneeRef = useRef(null);
     const priorityRef = useRef(null);
 
+    // list developer
     const [developers, setDevelopers] = useState([]);
 
+    // prioritas
     const priorities = [
       { value: 'high', label: 'High' },
       { value: 'medium', label: 'Medium' },
@@ -30,15 +34,16 @@
     useEffect(() => {
       const fetchDevelopers = async () => {
         try {
+          // request backend
           const res = await fetch(
             "http://localhost:3000/api/developers",
             {
               credentials: "include"
             }
           );
-
+          // parse json
           const data = await res.json();
-          setDevelopers(data);
+          setDevelopers(Array.isArray(data) ? data : (data?.data ?? []));
         } catch (err) {
           console.error(err);
         }
@@ -62,26 +67,27 @@
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [openDropdown]);
 
-    // Get display text for selected values
+    // label assignee untuk button dropdown
     const getAssigneeLabel = () => {
+      // find developer yang sama idnya dgn formdata.assignedto
       const dev = developers.find(d => String(d.id) === String(formData.assignedTo));
       return dev ? dev.username : 'Select a developer';
     };
     
-
+    // label priority untuk button dropdown
     const getPriorityLabel = () => {
       const priority = priorities.find(p => p.value === formData.priority);
       return priority ? priority.label : 'Select priority';
     };
 
-    // Handle dropdown selection
+    // handle dropdown selection
     const handleDropdownSelect = (field, value) => {
       setFormData(prev => ({
         ...prev,
         [field]: value
       }));
       
-      // Clear error for this field
+      // clear error for this field (kalau sebelumnya error)
       if (errors[field]) {
         setErrors(prev => ({
           ...prev,
@@ -93,13 +99,15 @@
       setOpenDropdown(null);
     };
 
+    // handle input
     const handleChange = (e) => {
       const { name, value } = e.target;
+      // update from state
       setFormData(prev => ({
         ...prev,
         [name]: value
       }));
-      // Clear error when user starts typing
+      // clear error ketika user mengetik 
       if (errors[name]) {
         setErrors(prev => ({
           ...prev,
@@ -108,9 +116,11 @@
       }
     };
 
+    // validate formnya sebelum submit
     const validateForm = () => {
       const newErrors = {};
 
+      // SEMUANYA REQUIRED (WAJIB ISI)
       if (!formData.defectTitle.trim()) {
         newErrors.defectTitle = 'Defect title is required';
       }
@@ -127,10 +137,13 @@
         newErrors.additionalNotes = 'Additional notes are required';
       }
 
+      // simpan error ke state
       setErrors(newErrors);
+      // return true if passed
       return Object.keys(newErrors).length === 0;
     };
 
+    // handle submit
     const handleSubmit = async (e) => {
       e.preventDefault();
 
@@ -138,30 +151,31 @@
       if (!testSpecId) {
         setErrors((prev) => ({
           ...prev,
-          submit: "Id test spec kosong.",
+          submit: "Id test spec is empty.",
         }));
         return;
       }
 
+      // validasi form
       if (!validateForm()) return;
 
+      // get developer name untuk SWAL SUKSES
       const devUsername =
           developers.find((dev) => String(dev.id) === String(formData.assignedTo))?.username || "";
 
       try {
 
-        // Payload ke backend 
+        // payload ke backend 
         const payload = {
           testSpecId: Number(testSpecId),
           title: formData.defectTitle,
           assignDevId: Number(formData.assignedTo),
           priority: formData.priority,
-          status: "To Do",
           notes:
             formData.additionalNotes?.trim() || "",
         };
 
-        // Call API backend
+        // call API backend CREATE DEFECT
         const res = await fetch("http://localhost:3000/api/defects", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -174,8 +188,9 @@
 
         handleClose();
 
+        // swal success/berhasil
         await Swal.fire({
-            title: "Create defect succesful",
+            title: "Create defect successful",
             icon: "success",
             timer: 3000,
             timerProgressBar: true,
@@ -192,6 +207,7 @@
         console.error(err);
         setErrors((prev) => ({ ...prev, submit: err.message }));
         
+        // swal error
         await Swal.fire({
           title: "Create defect failed",
           icon: "error",
@@ -206,6 +222,7 @@
       }
     };
 
+    // handle close modal
     const handleClose = () => {
       setFormData({
         defectTitle: '',
@@ -218,8 +235,10 @@
       onClose();
     };
 
+    // kalau modal tidak open -> render null
     if (!isOpen) return null;
 
+    // UI
     return (
       <>
         {/* Backdrop */}
@@ -258,6 +277,14 @@
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="p-6">
+              
+              {/* SUBMIT ERROR */}
+              {errors.submit && (
+                <p className="text-red-500 text-xs mb-3">
+                  {errors.submit}
+                </p>
+              )}
+
               {/* Defect Title */}
               <div className="mb-4">
                 <label className="block text-base font-medium text-gray-700 mb-2">
