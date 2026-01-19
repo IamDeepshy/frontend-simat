@@ -81,8 +81,6 @@ export default function DetailSuites() {
       for (const suite of data) {
         const found = suite.testCases.find(tc => tc.id === testCaseId);
         if (found) {
-          const normalized = normalizeStatus(found.status);
-
           const next = {
             id: found.id,
             name: found.suiteName,
@@ -210,10 +208,46 @@ export default function DetailSuites() {
   }
 
   // disable Re run when task status is "To Do" or "In Progress"
-  const disableRerun =
-    user?.role === "qa" &&
-    defectDetails &&
-    ["To Do", "In Progress"].includes(defectDetails.status);
+  const rerunPolicy = (() => {
+    // default: boleh rerun kalau tidak ada defect aktif
+    if (!defectDetails) {
+      return {
+        disabled: false,
+        reason: "",
+      };
+    }
+
+    const status = defectDetails.status;
+
+    // Saat task sedang dikerjakan DEV (To Do / In Progress)
+    if (["To Do", "In Progress"].includes(status)) {
+      if (user?.role === "qa") {
+        return {
+          disabled: true,
+          reason: "Rerun disabled: task sedang dikerjakan DEV.",
+        };
+      }
+      // dev
+      return { disabled: false, reason: "" };
+    }
+
+    // Saat Done (verifikasi QA)
+    if (status === "Done") {
+      if (user?.role === "dev") {
+        return {
+          disabled: true,
+          reason: "Rerun disabled: task sudah Done dan sedang diverifikasi QA.",
+        };
+      }
+      // qa
+      return { disabled: false, reason: "" };
+    }
+
+    return { disabled: false, reason: "" };
+  })();
+
+  const disableRerun = rerunPolicy.disabled;
+
 
   const isRerunAfterDone = (lastRunAt, doneUpdatedAt) => {
     if (!lastRunAt) return false;
@@ -422,7 +456,7 @@ export default function DetailSuites() {
       reverseButtons: false,
     });
 
-    // ❌ Klik X / ESC / klik luar modal
+    // ❌ Klik X  klik luar modal
     if (result.isDismissed) return;
 
     // ✅ YES → Reopen task

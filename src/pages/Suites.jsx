@@ -199,7 +199,7 @@ const TestCaseAccordion = () => {
                 icon: "error",
                 title: "Re-run failed",
                 html: `<p class="text-sm text-gray-500">
-                        Test case <b>${rerunTestName}</b> still failed. You can reopen task or create a new defect.
+                        Test case <b>${rerunTestName}</b> still failed.
                       </p>`,
                 showConfirmButton: false,
                 timer: 3000,
