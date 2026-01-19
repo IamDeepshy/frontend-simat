@@ -83,7 +83,7 @@ const EditProfile = () => {
       setLoading(true);
 
       try {
-        const res = await fetch("http://localhost:3000/api/edit-profile", {
+        const res = await fetch("http://localhost:3000/auth/edit-profile", {
           method: "PUT",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
