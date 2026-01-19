@@ -280,11 +280,41 @@ const TestCaseAccordion = () => {
     );
   };
 
-  const isRerunDisabledByTask = (taskStatus, role) => {
-    if (role !== "qa") return false;
-    return ["To Do", "In Progress"].includes(taskStatus);
-  };
+  // Logic disable rerun berdasarkan task status & role user
+  const getRerunPolicy = (taskStatus, role) => {
+    // kalau belum ada task/defect aktif (null/undefined/"")
+    if (!taskStatus) {
+      return { disabled: false, reason: "" };
+    }
 
+    // Saat task masih dikerjakan DEV
+    if (["To Do", "In Progress"].includes(taskStatus)) {
+      if (role === "qa") {
+        return {
+          disabled: true,
+          reason: "Rerun disabled: task sedang dikerjakan DEV.",
+        };
+      }
+      // dev
+      return { disabled: false, reason: "" };
+    }
+
+    // Saat Done (masuk verifikasi QA)
+    if (taskStatus === "Done") {
+      if (role === "dev") {
+        return {
+          disabled: true,
+          reason: "Rerun disabled: task sudah Done dan sedang diverifikasi QA.",
+        };
+      }
+      // qa
+      return { disabled: false, reason: "" };
+    }
+
+    // fallback
+    return { disabled: false, reason: "" };
+  };
+  
   /* ======================================================
    * PAGINATION LOGIC
    * ====================================================== */
@@ -568,60 +598,62 @@ const TestCaseAccordion = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filterTestCases(suite.testCases).map((tc, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-center">
-                        <div className="font-medium">{tc.name}</div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="font-medium">{tc.testName}</div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span
-                          className={`inline-block px-6 py-0.5 rounded-full text-sm font-medium ${getStatusBadgeClass(
-                            tc.status
-                          )}`}
-                        >
-                          {tc.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {tc.status !== "PASSED" && (
-                          <span className={`inline-block px-6 py-0.5 rounded-full text-sm font-medium ${getTaskStatusClass(tc.taskStatus)}`}>
-                            {tc.taskStatus}
-                          </span>
-                        )}
+                  {filterTestCases(suite.testCases).map((tc, idx) => {
 
-                      </td>
-                      {/* <td className="px-6 py-4 text-center text-gray-400">-</td> */}
-                      <td className="px-6 py-4 text-center font-medium text-sm text-gray-500">
-                        {tc.duration}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex justify-center gap-3">
-                          <Link to="/detail-suites" state={{testCaseId: tc.id }}>
-                            <img src="/assets/icon/view.svg" className="w-5 h-5" />
-                          </Link>
-                          <button
-                            onClick={() => {
-                              if (isRerunDisabledByTask(tc.taskStatus, user?.role)) return; // extra safety
-                              setLastRerunId(tc.id);
-                              rerun(tc);
-                            }}
-                            disabled={isRerunning || isRerunDisabledByTask(tc.taskStatus, user?.role)}
-                            className="hover:opacity-70 transition-opacity disabled:opacity-40"
-                            title={
-                              isRerunDisabledByTask(tc.taskStatus, user?.role)
-                                ? "Rerun is disabled while the task is in progress."
-                                : ""
-                            }
+                    const rerunPolicy = getRerunPolicy(tc.taskStatus, user?.role);
+                    const disableRerun = isRerunning || rerunPolicy.disabled;
+
+                    return (
+                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 text-center">
+                          <div className="font-medium">{tc.name}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="font-medium">{tc.testName}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span
+                            className={`inline-block px-6 py-0.5 rounded-full text-sm font-medium ${getStatusBadgeClass(
+                              tc.status
+                            )}`}
                           >
-                            <img src="/assets/icon/rerun.svg" alt="Rerun" className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {tc.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {tc.status !== "PASSED" && (
+                            <span className={`inline-block px-6 py-0.5 rounded-full text-sm font-medium ${getTaskStatusClass(tc.taskStatus)}`}>
+                              {tc.taskStatus}
+                            </span>
+                          )}
+
+                        </td>
+                        {/* <td className="px-6 py-4 text-center text-gray-400">-</td> */}
+                        <td className="px-6 py-4 text-center font-medium text-sm text-gray-500">
+                          {tc.duration}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex justify-center gap-3">
+                            <Link to="/detail-suites" state={{testCaseId: tc.id }}>
+                              <img src="/assets/icon/view.svg" className="w-5 h-5" />
+                            </Link>
+                            <button
+                              onClick={() => {
+                                if (disableRerun) return; // extra safety
+                                setLastRerunId(tc.id);
+                                rerun(tc);
+                              }}
+                              disabled={disableRerun}
+                              className="hover:opacity-70 transition-opacity disabled:opacity-40"
+                              title={rerunPolicy.disabled ? rerunPolicy.reason : ""}
+                            >
+                              <img src="/assets/icon/rerun.svg" alt="Rerun" className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             )}
