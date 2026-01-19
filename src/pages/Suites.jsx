@@ -628,7 +628,6 @@ const TestCaseAccordion = () => {
                           )}
 
                         </td>
-                        {/* <td className="px-6 py-4 text-center text-gray-400">-</td> */}
                         <td className="px-6 py-4 text-center font-medium text-sm text-gray-500">
                           {tc.duration}
                         </td>

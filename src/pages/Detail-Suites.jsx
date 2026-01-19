@@ -128,7 +128,7 @@ export default function DetailSuites() {
    * DEFECT STATE
    * ====================================================== */
   const [defectDetails, setDefectDetails] = useState(null);
-  console.log("defectDetails full:", defectDetails);
+  // console.log("defectDetails full:", defectDetails);
 
   const fetchActiveDefect = async () => {
     if (!testCase) {
