@@ -140,7 +140,7 @@ export default function TaskManagement() {
         const existing = map.get(key);
 
         // pilih yang paling baru
-        if (new Date(task.updatedAt) > new Date(existing.updatedAt)) {
+        if (new Date(task.updated_at) > new Date(existing.updated_at)) {
           map.set(key, task);
         }
       }
@@ -205,7 +205,7 @@ export default function TaskManagement() {
       if (showHidden) {
         Object.keys(grouped).forEach((k) => {
           grouped[k].sort(
-            (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+            (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
           );
         });
       }
