@@ -7,10 +7,7 @@ import { useRerunTest } from '../context/useRerunTest';
 import RerunLoadingModal from '../components/RerunLoadingModal';
 
 export default function DetailSuites() {
-  /* ======================================================
-   * FETCH USER LOGIN
-   * Ambil data user login (role dipakai untuk kontrol action / disable rerun)
-   * ====================================================== */
+  // FETCH USER LOGIN Mengambil data user login untuk kontrol role-based action
   const [user, setUser] = useState(null);
 
   // Fetch data user dari endpoint /auth/me (menggunakan cookie via credentials)
@@ -37,10 +34,7 @@ export default function DetailSuites() {
     fetchUser();
   }, []);
 
-  /* ======================================================
-   * RE RUN STATE
-   * State dan handler rerun testcase (progress & nama testcase)
-   * ====================================================== */
+  //  RE RUN STATE State dan handler rerun testcase (progress & nama testcase)
   const { rerun, isRerunning, progress, rerunTestName } = useRerunTest();
 
   // Menyimpan status rerun sebelumnya untuk mendeteksi transisi running -> selesai
@@ -52,10 +46,7 @@ export default function DetailSuites() {
   // id testcase yang dipilih dari halaman list suites
   const testCaseId = state?.testCaseId;
 
-  /* ======================================================
-   * FETCH TEST CASE DETAILS
-   * Mengambil detail testcase berdasarkan id (diambil dari grouped-testcases)
-   * ====================================================== */
+  // FETCH TEST CASE DETAILS Mengambil detail testcase berdasarkan id (diambil dari grouped-testcases)
   const [testCase, setTestCase] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -127,11 +118,6 @@ export default function DetailSuites() {
     }
   }, [testCaseId]);
 
-  /* ======================================================
-   * STATUS BADGE STATE
-   * State untuk modal tertentu (misalnya create defect) dan helper class badge
-   * ====================================================== */
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Class badge status PASSED/FAILED untuk UI
   const getStatusBadgeClass = (status) => {
@@ -140,10 +126,7 @@ export default function DetailSuites() {
     return '';
   };
 
-  /* ======================================================
-   * DEFECT STATE
-   * Mengambil defect aktif untuk testcase ini (untuk kontrol action QA/DEV)
-   * ====================================================== */
+  // DEFECT STATE Mengambil defect aktif untuk testcase ini (untuk kontrol action QA/DEV)
   const [defectDetails, setDefectDetails] = useState(null);
   // console.log("defectDetails full:", defectDetails);
 
@@ -196,6 +179,7 @@ export default function DetailSuites() {
   }, [testCase]);
 
   // Penting: refetch defect setelah modal ditutup (supaya data sync setelah create/update)
+  const [isModalOpen, setIsModalOpen] = useState(false);
   useEffect(() => {
     if (!isModalOpen) fetchActiveDefect();
   }, [isModalOpen]);
@@ -225,10 +209,7 @@ export default function DetailSuites() {
     defectDetails &&
     (defectDetails.status === "To Do" || defectDetails.status === "In Progress" || defectDetails.status === "Done");
 
-  /* ======================================================
-   * EARLY RETURN
-   * Jika halaman detail dibuka tanpa testCaseId dari routing state
-   * ====================================================== */
+  // EARLY RETURN Jika halaman detail dibuka tanpa testCaseId dari routing state
   if (!testCaseId) {
     return (
       <div className="flex-grow ml-[260px] p-8 min-h-screen overflow-y-auto">
@@ -239,10 +220,7 @@ export default function DetailSuites() {
     );
   }
 
-  /* ======================================================
-   * RERUN POLICY
-   * Menentukan apakah rerun boleh dilakukan berdasarkan defect status & role user
-   * ====================================================== */
+  // RERUN POLICY aturan rerun berdasarkan status defect + role user
   const rerunPolicy = (() => {
     // Default: boleh rerun kalau tidak ada defect aktif
     if (!defectDetails) {
@@ -287,10 +265,7 @@ export default function DetailSuites() {
   // Flag yang dipakai untuk disable tombol rerun
   const disableRerun = rerunPolicy.disabled;
 
-  /* ======================================================
-   * RERUN VALIDATION
-   * Membandingkan waktu lastRunAt testcase vs updated_at defect Done
-   * ====================================================== */
+  // RERUN VALIDATION membandingkan waktu lastRunAt testcase vs updated_at defect Done
   const isRerunAfterDone = (lastRunAt, doneUpdatedAt) => {
     if (!lastRunAt) return false;
     if (!doneUpdatedAt) return false;
@@ -304,10 +279,7 @@ export default function DetailSuites() {
   // rerunValid = rerun terakhir terjadi setelah task Done terakhir diupdate
   const rerunValid = isRerunAfterDone(testCase?.lastRunAt, defectDetails?.updated_at);
 
-  /* ======================================================
-   * COMPLETE ACTION (QA)
-   * Muncul jika: role QA + task Done + rerun valid + hasil PASSED
-   * ====================================================== */
+  // Complete Action untuk QA muncul jika hasil rerun valid dan PASSED
   const showCompleteAction =
     user?.role === "qa" &&
     defectDetails?.status === "Done" &&
@@ -381,10 +353,7 @@ export default function DetailSuites() {
     await fetchActiveDefect();
   };
 
-  /* ======================================================
-   * SWEETALERT – RERUN FINISHED
-   * Menampilkan notifikasi setelah rerun selesai berdasarkan status terbaru
-   * ====================================================== */
+  // SweetAlert Rerun Result Notification berdasarkan status  terbaru
   useEffect(() => {
     // Trigger saat sebelumnya rerunning dan sekarang sudah selesai
     if (wasRerunning && !isRerunning) {
@@ -426,7 +395,7 @@ export default function DetailSuites() {
               icon: "error",
               title: "Re-run failed",
               html: `<p class="text-sm text-gray-500">
-                      Test case <b>${rerunTestName}</b> still failed. You can reopen task or create a new defect.
+                      Test case <b>${rerunTestName}</b> still failed.
                     </p>`,
               showConfirmButton: false,
               timer: 3000,
@@ -454,83 +423,14 @@ export default function DetailSuites() {
     setWasRerunning(isRerunning);
   }, [isRerunning, wasRerunning, rerunTestName]);
 
-  /* ======================================================
-   * DECISION ACTION (QA)
-   * Muncul jika: QA + task Done + rerun valid + hasil FAILED
-   * ====================================================== */
+  // Decision Action untuk QA memilih reopen atau create defect baru
   const showDecisionAction =
     user?.role === "qa" &&
     defectDetails?.status === "Done" &&
     rerunValid &&
     testCase?.status === "FAILED";
 
-  // QA memilih: apakah issue sama (reopen) atau issue baru (create defect baru)
-  const handleDecisionQA = async () => {
-    const result = await Swal.fire({
-      title: "Is this the same issue?",
-      html: `
-      <div style="display:flex; justify-content:center; margin-top:8px;">
-        <div style="
-          background:#eff6ff;
-          border:1px solid #bfdbfe;
-          border-radius:8px;
-          padding:12px 14px;
-          max-width:360px;
-          display:flex;
-          gap:10px;
-          align-items:flex-start;
-          color:#1d4ed8;
-          font-size:14px;
-          text-align:left;
-        ">
-          <svg
-            style="width:20px; height:20px; flex-shrink:0; margin-top:2px; fill:#3b82f6;"
-            viewBox="0 0 20 20"
-          >
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-          </svg>
-
-          <div>
-            <strong>Tip:</strong><br/>
-            If <b>Yes</b>, the task will be reopened.<br/>
-            If <b>No</b>, a new defect will be created.
-          </div>
-        </div>
-      </div>
-      `,
-      icon: "question",
-      showCloseButton: true,
-      showCancelButton: false,
-
-      showDenyButton: true,
-      confirmButtonColor: "#16A34A",
-      denyButtonColor: "#ef4444",
-
-      confirmButtonText: "Yes",
-      denyButtonText: "No",
-
-      reverseButtons: false,
-    });
-
-    // Jika dismiss (klik X / klik luar), stop
-    if (result.isDismissed) return;
-
-    // YES -> reopen task
-    if (result.isConfirmed) {
-      await reopenTask();
-      return;
-    }
-
-    // NO -> buka modal create defect baru
-    if (result.isDenied) {
-      setIsModalOpen(true);
-    }
-  };
-
-  /* ======================================================
-   * REOPEN TASK
-   * Mengubah status task kembali ke "To Do"
-   * ====================================================== */
+  //  Reopen task mengubah status task ke To Do
   const reopenTask = async () => {
     console.log("Reopen API hit:", defectDetails.id);
 
@@ -620,6 +520,69 @@ export default function DetailSuites() {
     await fetchActiveDefect(); // refresh data defect
   };
 
+   // QA memilih: apakah issue sama (reopen) atau issue baru (create defect baru)
+  const handleDecisionQA = async () => {
+    const result = await Swal.fire({
+      title: "Is this the same issue?",
+      html: `
+      <div style="display:flex; justify-content:center; margin-top:8px;">
+        <div style="
+          background:#eff6ff;
+          border:1px solid #bfdbfe;
+          border-radius:8px;
+          padding:12px 14px;
+          max-width:360px;
+          display:flex;
+          gap:10px;
+          align-items:flex-start;
+          color:#1d4ed8;
+          font-size:14px;
+          text-align:left;
+        ">
+          <svg
+            style="width:20px; height:20px; flex-shrink:0; margin-top:2px; fill:#3b82f6;"
+            viewBox="0 0 20 20"
+          >
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+          </svg>
+
+          <div>
+            <strong>Tip:</strong><br/>
+            If <b>Yes</b>, the task will be reopened.<br/>
+            If <b>No</b>, a new defect will be created.
+          </div>
+        </div>
+      </div>
+      `,
+      icon: "question",
+      showCloseButton: true,
+      showCancelButton: false,
+
+      showDenyButton: true,
+      confirmButtonColor: "#16A34A",
+      denyButtonColor: "#ef4444",
+
+      confirmButtonText: "Yes",
+      denyButtonText: "No",
+
+      reverseButtons: false,
+    });
+
+    // Jika dismiss (klik X / klik luar), stop
+    if (result.isDismissed) return;
+
+    // YES -> reopen task
+    if (result.isConfirmed) {
+      await reopenTask();
+      return;
+    }
+
+    // NO -> buka modal create defect baru
+    if (result.isDenied) {
+      setIsModalOpen(true);
+    }
+  };
+
   /* ======================================================
    * UI HELPERS (layout)
    * ====================================================== */
@@ -646,12 +609,6 @@ export default function DetailSuites() {
   return (
     // Container utama halaman detail (offset sidebar + padding + scroll)
     <div className="flex-grow ml-[260px] p-8 min-h-screen overflow-y-auto">
-      {/* ======================================================
-      * CONDITIONAL RENDER:
-      * 1) loading
-      * 2) testCase ada
-      * 3) testCase null (no data)
-      * ====================================================== */}
       {loading ? (
         // ====================== LOADING STATE ======================
         <div className="flex items-center justify-center h-96">
@@ -674,11 +631,7 @@ export default function DetailSuites() {
 
           {/* Main Card: wrapper utama detail testcase */}
           <div className="bg-white rounded-2xl shadow-sm p-6">
-            {/* ======================================================
-            * TEST CASE HEADER
-            * Menampilkan judul testcase + badge status + durasi + kode + lastRunAt
-            * + action buttons (rerun & create defect)
-            * ====================================================== */}
+            {/* Test Case Header */}
             <div className="flex justify-between items-start mb-6 pb-6 border-b border-gray-200">
               <div>
                 {/* Judul testcase */}
@@ -701,7 +654,7 @@ export default function DetailSuites() {
                     {testCase.duration}
                   </span>
 
-                  {/* Code test case / suite name */}
+                  {/* Code test case */}
                   <span className="text-gray-500 flex items-center gap-1">
                     <i className="fa-regular fa-file"></i>
                     {testCase.name}
@@ -722,12 +675,7 @@ export default function DetailSuites() {
                   </span>
                 </div>
               </div>
-
-              {/* ======================================================
-              * ACTION BUTTONS
-              * - Rerun Test (disabled saat rerun berjalan / policy disable)
-              * - Create Defect (hanya QA & testcase bukan PASSED)
-              * ====================================================== */}
+              {/* ACTIONS BUTTON */}
               <div className="flex gap-3">
                 {/* Button rerun testcase */}
                 <button
@@ -796,11 +744,7 @@ export default function DetailSuites() {
               </div>
             </div>
 
-            {/* ======================================================
-            * DETAILS SECTION (DEFECT)
-            * Menampilkan detail defect aktif jika ada (assignee, priority, status, created/updated)
-            * + actions untuk QA (complete / decision) jika memenuhi syarat
-            * ====================================================== */}
+           {/* Details Section menampilkan info task defect */}
             {defectDetails && (
               <div className="mb-6 pb-6 border-b border-gray-200">
                 <h5 className="text-lg font-semibold mb-4">Details</h5>
@@ -860,7 +804,7 @@ export default function DetailSuites() {
                     </span>
                   </div>
 
-                  {/* Actions (hanya muncul kalau memenuhi showActionsSection) */}
+                  {/* Actions */}
                   {showActionsSection && (
                     <div>
                       <p className="text-sm font-medium text-gray-500 mb-3.5">Actions</p>
@@ -878,7 +822,7 @@ export default function DetailSuites() {
                           </button>
                         )}
 
-                        {/* QA Decision (QA + Done + rerun valid + FAILED) */}
+                        {/* QA Decision */}
                         {showDecisionAction && (
                           <button
                             onClick={handleDecisionQA}
@@ -894,10 +838,7 @@ export default function DetailSuites() {
                   )}
                 </div>
 
-                {/* ======================================================
-                * ROW 2: REOPEN METADATA
-                * Menampilkan informasi reopen jika task pernah di-reopen
-                * ====================================================== */}
+                {/* Menampilkan Reopen */}
                 {showReopen && (
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-6">
                     {/* Reopened At */}
@@ -929,11 +870,7 @@ export default function DetailSuites() {
               </div>
             )}
 
-            {/* ======================================================
-            * RESULT SECTION
-            * Jika PASSED: tampil kartu hijau ringkasan sukses
-            * Jika FAILED: tampil error message + screenshot evidence (jika ada)
-            * ====================================================== */}
+           {/* Result Section */}
             {testCase.status === "PASSED" ? (
               // ====================== PASSED STATE ======================
               <div className="bg-green-100 -mx-6 px-6 py-8 -mb-6 rounded-b-2xl justify-center flex flex-col items-center text-center">
@@ -958,7 +895,7 @@ export default function DetailSuites() {
                   </div>
                 )}
 
-                {/* Execution Record Section: bukti screenshot kegagalan */}
+                {/* Execution Screenshot Section: bukti screenshot kegagalan */}
                 {testCase.screenshotUrl && (
                   <div className="mt-6">
                     <h5 className="text-lg font-semibold mb-4">Failure Evidence</h5>
@@ -982,10 +919,7 @@ export default function DetailSuites() {
         </div>
       )}
 
-      {/* ======================================================
-      * MODAL RERUN
-      * Menampilkan progress rerun ketika proses rerun sedang berjalan
-      * ====================================================== */}
+      {/* Modal Rerun -> progress re run */}
       <RerunLoadingModal
         open={isRerunning}
         progress={progress}

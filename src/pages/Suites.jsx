@@ -8,9 +8,6 @@ const ITEMS_PER_PAGE = 5;
 // export default function DetailSuites() {
 
 export default function TestCaseAccordion() {
-  /* ======================================================
-   * FETCH USER LOGIN
-   * ====================================================== */
   // Menyimpan data user yang sedang login (default null sebelum berhasil di-fetch)
   const [user, setUser] = useState(null);
 
@@ -38,39 +35,24 @@ export default function TestCaseAccordion() {
     fetchUser();
   }, []);
 
-  /* ======================================================
-   * RE RUN STATE
-   * ====================================================== */
   // Ambil state & handler dari custom hook untuk rerun test
   const { rerun, isRerunning, progress, rerunTestName } = useRerunTest();
 
   // Menyimpan status rerunning sebelumnya untuk mendeteksi transisi dari "running" -> "selesai"
   const [wasRerunning, setWasRerunning] = useState(false);
-
-  /* ======================================================
-   * LOCAL STATE
-   * ====================================================== */
   // Menyimpan id suite yang sedang dibuka di accordion
   const [expandedId, setExpandedId] = useState(null);
-
   // Menyimpan data suite + testcases yang sudah dimapping untuk UI
   const [testSuites, setTestSuites] = useState([]);
-
   // Flag loading saat fetch data
   const [loading, setLoading] = useState(true);
-
   // State pagination page yang aktif
   const [currentPage, setCurrentPage] = useState(1);
-
   // Filter status yang aktif: 'all' | 'passed' | 'failed'
   const [activeFilter, setActiveFilter] = useState('all');
-
   // Keyword pencarian untuk filter by search
   const [searchTerm, setSearchTerm] = useState('');
 
-  /* ======================================================
-   * FETCH DATA
-   * ====================================================== */
   // Normalisasi status agar konsisten (BROKEN dianggap FAILED)
   const normalizeStatus = (status) => {
     if (status === 'PASSED') return 'PASSED';
@@ -86,10 +68,10 @@ export default function TestCaseAccordion() {
     return `${min}m ${sec % 60}s`;
   };
 
-  // Menyimpan id testcase terakhir yang direrun (dipakai untuk fetch status terakhir)
+  // Menyimpan id testcase terakhir yang direrun
   const [lastRerunId, setLastRerunId] = useState(null);
 
-  // Ambil grouped testcases dari API lalu mapping data jadi struktur yang dipakai UI
+  // Ambil grouped testcases dari API 
   const fetchSuites = async () => {
     setLoading(true);
     try {
@@ -139,7 +121,7 @@ export default function TestCaseAccordion() {
     fetchSuites();
   }, []);
 
-  // Cek apakah rerun terjadi setelah defect "Done" terakhir di-update (untuk validasi hasil verifikasi)
+  // Cek rerun setelah defect Done untuk validasi hasil verifikasi
   const isRerunAfterDone = (lastRunAt, doneUpdatedAt) => {
     if (!lastRunAt) return false;
     if (!doneUpdatedAt) return false;
@@ -147,7 +129,7 @@ export default function TestCaseAccordion() {
     return new Date(lastRunAt).getTime() > new Date(doneUpdatedAt).getTime();
   };
 
-  // Fetch satu testcase by id (dipakai untuk ambil status & lastRunAt terbaru)
+  // Digunakan saat rerun selesai untuk cek status testcase
   const fetchTestCaseById = async (id) => {
     const res = await fetch("http://localhost:3000/api/grouped-testcases", {
       credentials: "include",
@@ -168,7 +150,7 @@ export default function TestCaseAccordion() {
     return null;
   };
 
-  // Fetch defect aktif berdasarkan testSpecId (dipakai untuk cek status task/defect)
+  // Jika tidak ada defect aktif atau defect disembunyikan, kembalikan null
   const fetchActiveDefectByTestSpecId = async (testSpecId) => {
     const res = await fetch(
       `http://localhost:3000/api/defects/active?testSpecId=${testSpecId}`,
@@ -188,9 +170,7 @@ export default function TestCaseAccordion() {
     return defect;
   };
 
-  /* ======================================================
-   * SWEETALERT – RERUN FINISHED
-   * ====================================================== */
+  // SweetAlert notifikasi hasil rerun setelah proses rerun selesai
   useEffect(() => {
     // Trigger hanya saat sebelumnya rerunning dan sekarang sudah tidak rerunning
     if (wasRerunning && !isRerunning) {
@@ -221,16 +201,15 @@ export default function TestCaseAccordion() {
           return;
         }
 
-        // CASE: rerun menghasilkan FAILED -> beda pesan tergantung kondisi defect Done + rerun timing
+        // Rerun FAILED 
         if (status === "FAILED") {
           // Cek apakah defect sudah Done (masuk fase verifikasi)
           const taskDone = latestDefect?.status === "Done";
-
           // Cek apakah rerun dilakukan setelah defect Done terakhir diupdate (valid untuk verifikasi)
           const rerunValidNow = isRerunAfterDone(latest?.lastRunAt, latestDefect?.updated_at);
 
           if (taskDone && rerunValidNow) {
-            // Jika Done tapi rerun terbaru masih gagal -> tampilkan "still failed"
+            // Menampilkan pesan still failed seetelah rerun
             Swal.fire({
               icon: "error",
               title: "Re-run failed",
@@ -242,7 +221,7 @@ export default function TestCaseAccordion() {
               timerProgressBar: true,
             });
           } else {
-            // Jika belum Done atau rerun tidak valid untuk verifikasi -> tampilkan pesan failed biasa
+            // Jika rerun gagal
             Swal.fire({
               icon: "error",
               title: "Test case failed",
@@ -265,9 +244,7 @@ export default function TestCaseAccordion() {
     setWasRerunning(isRerunning);
   }, [isRerunning, wasRerunning, rerunTestName, lastRerunId]);
 
-  /* ======================================================
-   * HELPERS
-   * ====================================================== */
+  
   // Toggle accordion: jika id sama -> tutup, kalau beda -> buka suite tersebut
   const toggleAccordion = (id) => {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -364,9 +341,7 @@ export default function TestCaseAccordion() {
     return { disabled: false, reason: "" };
   };
 
-  /* ======================================================
-   * PAGINATION LOGIC
-   * ====================================================== */
+
   // Apply filter status + filter search, lalu buang suite yang hasilnya kosong
   const filteredSuites = testSuites
     .map((suite) => {
@@ -412,7 +387,6 @@ export default function TestCaseAccordion() {
 
   // Role user
   const isQA = user?.role === "qa";
-  const isDEV = user?.role === "dev"; // kalau role dev kamu pakai "dev"
 
   // Tentukan teks empty state berdasarkan kondisi
   const emptyTitle = isSearchEmpty
@@ -420,17 +394,13 @@ export default function TestCaseAccordion() {
     : isQA
       ? "No Test Results Available"
       : "No Tasks Assigned";
-
+  // Deskripsi empty state berdasarkan kondisi
   const emptyDescription = isSearchEmpty
     ? `We couldn't find any test results matching “${searchTerm}”.`
     : isQA
       ? "You don't have any test results yet."
       : "You don't have any assigned defects right now.";
 
-
-  /* ======================================================
-   * EXPORT REPORT TO CSV
-   * ====================================================== */
   // Disable tombol export jika tidak ada data yang bisa diexport
   const isExportDisabled = filteredSuites.length === 0;
 
@@ -483,9 +453,7 @@ export default function TestCaseAccordion() {
     // Container utama halaman (offset sidebar + padding + full height)
     <div className="ml-[260px] p-8 min-h-screen">
 
-      {/* ======================================================
-      * HEADER SECTION
-      * ====================================================== */}
+      {/* Header Section */}
       <div className="flex justify-between items-start mb-6">
         <div>
           {/* Judul halaman */}
@@ -495,7 +463,7 @@ export default function TestCaseAccordion() {
           <p className="text-gray-500 mt-1">Manage and monitor your test suites</p>
         </div>
 
-        {/* Tombol export report ke CSV (disabled jika tidak ada data) */}
+        {/* Tombol export report ke CSV */}
         <button
           onClick={exportToCSV}
           disabled={isExportDisabled}
@@ -516,9 +484,7 @@ export default function TestCaseAccordion() {
         </button>
       </div>
 
-      {/* ======================================================
-      * SEARCH & FILTER SECTION
-      * ====================================================== */}
+      {/* Search & Filter Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
         {/* Search Bar */}
         <div className="lg:col-span-5">
@@ -555,7 +521,7 @@ export default function TestCaseAccordion() {
           </div>
         </div>
 
-        {/* Filter Buttons (hanya tampil jika user role = QA) */}
+        {/* Filter Buttons */}
         {user?.role === "qa" && (
           <div className="lg:col-span-7 flex gap-3">
             {/* Filter ALL */}
@@ -597,9 +563,7 @@ export default function TestCaseAccordion() {
         )}
       </div>
 
-      {/* ======================================================
-      * INFO SEARCH
-      * ====================================================== */}
+      {/* Search Info */}
       {searchTerm && (
         <p className="text-sm text-gray-500 mb-4">
           Menampilkan hasil pencarian untuk:
@@ -607,12 +571,7 @@ export default function TestCaseAccordion() {
         </p>
       )}
 
-      {/* ======================================================
-        * EMPTY STATE
-        * - Search kosong: No Results Found
-        * - QA tanpa data: No Test Results Available
-        * - DEV tanpa task: No Tasks Assigned
-      * ====================================================== */}
+      {/* Empty State */}
       {!loading && isEmpty && (
         <div className="bg-white border rounded-2xl p-12 text-center text-gray-600">
           <div className="flex flex-col items-center gap-4">
@@ -634,10 +593,7 @@ export default function TestCaseAccordion() {
       )}
 
 
-      {/* ======================================================
-      * ACCORDION LIST
-      * Render daftar suite
-      * ====================================================== */}
+      {/* Accordion Suite List */}
       {paginatedSuites.map((suite) => {
         // Hitung jumlah passed & failed setelah filter aktif diterapkan
         const { passed, failed } = getFilteredCounts(suite);
@@ -649,7 +605,7 @@ export default function TestCaseAccordion() {
 
         return (
           <div key={suite.id} className="bg-white border rounded-xl mb-4">
-            {/* ================= HEADER ACCORDION ================= */}
+            {/* Header Accordion */}
             <button
               onClick={() => toggleAccordion(suite.id)}
               className="w-full p-5 flex justify-between items-center hover:bg-gray-50"
@@ -667,15 +623,14 @@ export default function TestCaseAccordion() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
 
-                {/* Info suite (parentCode + total test) */}
+                {/* Info suite */}
                 <div>
                   <div className="font-semibold text-lg">{suite.parentCode}</div>
                   <div className="text-sm text-gray-500">{suite.totalTests} Test Cases</div>
                 </div>
               </div>
 
-              {/* ================= BADGE SUMMARY =================
-                Menampilkan badge jumlah passed/failed sesuai filter */}
+              {/* Badge Summary */}
               <div className="flex gap-2">
                 {(activeFilter === 'all' || activeFilter === 'passed') && passed > 0 && (
                   <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium min-w-8">
@@ -691,8 +646,7 @@ export default function TestCaseAccordion() {
               </div>
             </button>
 
-            {/* ================= CONTENT ACCORDION =================
-              Tabel testcase hanya tampil jika suite sedang di-expand */}
+            {/* Content Accordion */}
             {expandedId === suite.id && (
               <table className="w-full border-t">
                 {/* Header tabel */}
@@ -761,7 +715,7 @@ export default function TestCaseAccordion() {
                               <img src="/assets/icon/view.svg" className="w-5 h-5" />
                             </Link>
 
-                            {/* Tombol rerun testcase (disabled sesuai policy atau sedang rerun) */}
+                            {/* Tombol rerun testcase sesuai policy */}
                             <button
                               onClick={() => {
                                 // Safety: jika disable, jangan lakukan apa-apa
@@ -790,10 +744,7 @@ export default function TestCaseAccordion() {
         );
       })}
 
-      {/* ======================================================
-      * PAGINATION
-      * Navigasi halaman (Previous/Next + nomor halaman)
-      * ====================================================== */}
+      {/* Pagination Controls */}
       <div className="flex justify-between items-center mt-6">
         {/* Info jumlah suite yang sedang ditampilkan */}
         <p className="text-sm text-gray-600">
@@ -841,10 +792,7 @@ export default function TestCaseAccordion() {
         </div>
       </div>
 
-      {/* ======================================================
-      * MODAL RERUN
-      * Muncul saat proses rerun berjalan untuk menunjukkan progress
-      * ====================================================== */}
+      {/* Rerun Loading Modal */}
       <RerunLoadingModal
         open={isRerunning}
         progress={progress}
