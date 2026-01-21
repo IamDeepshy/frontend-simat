@@ -16,7 +16,7 @@ export default function App() {
   return (
     <Routes>
 
-      {/* Halaman terbuka hanya untuk tamu */}
+      {/* Halaman terbuka tanpa login */}
       <Route
         path="/login"
         element={

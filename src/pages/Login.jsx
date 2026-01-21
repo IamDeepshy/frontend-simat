@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Swal from "sweetalert2";
 
-
 export default function Login() {
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // toggle show password
   const [username, setUsername] = useState("");   
   const [password, setPassword] = useState(""); 
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { refreshUser } = useAuth(); // refresh state user setelah login/logout
 
+  // handle login submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -31,10 +31,11 @@ export default function Login() {
     }
 
     try {
+      // post auth/login
       const res = await fetch("http://localhost:3000/auth/login", {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" }, // application/json supaya backend bisa parse req.body
         body: JSON.stringify({ username, password }),
       });
 
@@ -42,6 +43,7 @@ export default function Login() {
         FAILED LOGIN
       =========================== */
       if (!res.ok) {
+        // username/salah
         if (res.status === 401) {
           return Swal.fire({
             icon: "error",
@@ -57,6 +59,7 @@ export default function Login() {
           });
         }
 
+        // server error
         return Swal.fire({
           icon: "error",
           title: "Server error",
@@ -71,29 +74,22 @@ export default function Login() {
         });
       }
 
+      const me = await refreshUser();
 
-      await refreshUser();
-
-      // ambil data user
-      const meRes = await fetch("http://localhost:3000/auth/me", {
-        credentials: "include",
-      });
-
-      if (!meRes.ok) {
+      if (!me) {
         navigate("/login");
         return;
       }
 
-      const me = await meRes.json();
-
       // redirect sesuai role
       if (me.role === "qa") {
-        navigate("/");
+        navigate("/", { replace: true }); // dashboard
       } else {
-        navigate("/suites");
+        navigate("/suites", { replace: true });
       }
     } catch (err) {
       console.error(err);
+      // network error     
       Swal.fire({
         icon: "error",
         title: "Network error",
@@ -150,8 +146,8 @@ export default function Login() {
                   id="username"
                   placeholder="Input your username..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all"
-                  value={username}                            // <-- tambah
-                  onChange={(e) => setUsername(e.target.value)}  // <-- tambah
+                  value={username}                            // controlled input
+                  onChange={(e) => setUsername(e.target.value)}  
                 />
 
               </div>
@@ -170,10 +166,11 @@ export default function Login() {
                     id="password"
                     placeholder="Input your password..."
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all pr-12"
-                    value={password}                            // <-- tambah
-                    onChange={(e) => setPassword(e.target.value)}  // <-- tambah
+                    value={password}                            // controlled input
+                    onChange={(e) => setPassword(e.target.value)}  
                   />
 
+                  {/* toggle show/hide password */}
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -213,7 +210,7 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Login Button */}
+              {/* submit login button */}
               <button
                 type="submit"
                 className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors mt-8"

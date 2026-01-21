@@ -12,6 +12,9 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
+// =========================
+// REGISTER CHART.JS MODULES
+// =========================
 ChartJS.register(
   CategoryScale, 
   LinearScale, 
@@ -23,7 +26,7 @@ ChartJS.register(
   ChartDataLabels
 );
 
-const ChartSection = () => {
+export default function ChartSection() {
   const [chartData, setChartData] = useState({
     barLabels: [],
     barValues: [],
@@ -32,15 +35,16 @@ const ChartSection = () => {
     total: 0,
   });
 
-  // Helpers
+  // helpers
   const normalizeStatus = (status) => {
     if (status === 'PASSED') return 'PASSED';
     if (status === 'FAILED' || status === 'BROKEN') return 'FAILED';
     return status;
   };
 
+  // mengelompokkan testcase berdasarkan rentang durasi
   const formatDurationBucket = (ms) => {
-    // Bucket durasi: misal per 10ms
+    // bucket durasi: misal per 10ms
     const sec = Math.floor(ms / 1000);
     if (sec <= 1) return '1ms';
     if (sec <= 2) return '2ms';
@@ -57,25 +61,33 @@ const ChartSection = () => {
   useEffect(() => {
     const fetchChartData = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/grouped-testcases', { credentials: 'include' });
+        // request ke backend untuk ambil grouped testcase
+        const res = await fetch('http://localhost:3000/api/grouped-testcases', { credentials: 'include' }); // include, kirim cookie token ke auth
         const data = await res.json();
 
-        // Hitung bar chart (jumlah test case per durasi)
+        // hitung bar chart (jumlah test case per durasi)
         const durationBuckets = {};
+
+        // hitung donut chart (passed vs failed)
         let passedCount = 0;
         let failedCount = 0;
 
+        // LOOP semua suite -> semua testcase
         data.forEach(suite => {
           suite.testCases.forEach(tc => {
             const status = normalizeStatus(tc.status);
+            // hitung total passed/failed
+
             if (status === 'PASSED') passedCount++;
             if (status === 'FAILED') failedCount++;
 
+            // masukkan testcase ke bucket durasi
             const bucket = formatDurationBucket(tc.durationMs);
-            durationBuckets[bucket] = (durationBuckets[bucket] || 0) + 1;
+            durationBuckets[bucket] = (durationBuckets[bucket] || 0) + 1; // increment bucket count
           });
         });
 
+        // label & value bar chart dari object buckets
         const barLabels = Object.keys(durationBuckets);
         const barValues = Object.values(durationBuckets);
 
@@ -84,7 +96,7 @@ const ChartSection = () => {
           barValues,
           passed: passedCount,
           failed: failedCount,
-          total: passedCount + failedCount,
+          total: passedCount + failedCount, // broken juga dihitung (dimasukkin failed)
         });
       } catch (err) {
         console.error(err);
@@ -94,13 +106,13 @@ const ChartSection = () => {
     fetchChartData();
   }, []);
 
-  // BAR CHART DATA AND OPTIONS
+  // BAR CHART DATA AND OPTIONS (durasi)
   const barData = {
     labels: chartData.barLabels,
     datasets: [
       {
         label: 'Test Cases',
-        data: chartData.barValues,
+        data: chartData.barValues, // durasi testcase per bucket 
         backgroundColor: '#4285F4',
         borderRadius: 6,
       },
@@ -154,6 +166,7 @@ const ChartSection = () => {
       legend: { display: false },
       title: { display: false },
       datalabels: {
+        // tampilkan persentase di tiap slice donut
         color: '#fff',
         font: { weight: 'bold', size: 12 },
         formatter: (value, ctx) => {
@@ -199,5 +212,3 @@ const ChartSection = () => {
     </div>
   );
 };
-
-export default ChartSection;

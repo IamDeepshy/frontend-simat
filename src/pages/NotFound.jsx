@@ -22,18 +22,18 @@ export default function NotFound() {
             </div>
             
             <h2 className="text-xl md:text-3xl font-semibold text-gray-700 mb-3">
-              Halaman Tidak Ditemukan
+              Page Not Found
             </h2>
             
             <p className="text-gray-600 mb-6">
-              URL yang kamu akses tidak tersedia.
+              URL not available.
             </p>
             
             <button 
               onClick={() => window.location.href = '/'}
               className=" bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors mt-6"
             >
-              Kembali ke Beranda
+              Back to Home
             </button>
           </div>
         </div>

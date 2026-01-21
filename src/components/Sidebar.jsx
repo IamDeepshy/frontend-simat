@@ -1,37 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { useAuth } from "../context/AuthContext";
 
 export default function Sidebar() {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate = useNavigate(); // redirect halaman
+  const location = useLocation(); // cek path
+  const { user, logout } = useAuth(); // auth/me ambil dari context
 
   // role user: "qa" | "developer" | null
-  const [role, setRole] = useState(null);
-
-  // Ambil role dari backend
-  useEffect(() => {
-    const fetchMe = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/auth/me", {
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          // kalau gagal ya sudah, biarkan role tetap null
-          console.error("Gagal ambil data user");
-          return;
-        }
-
-        const data = await res.json();
-        setRole(data.role); // contoh: "qa" atau "developer"
-      } catch (err) {
-        console.error("Error fetch /auth/me", err);
-      } 
-    };
-
-    fetchMe();
-  }, []);
+  const role = user?.role;
 
   // Logout
   const handleLogout = async () => {
@@ -54,21 +32,9 @@ export default function Sidebar() {
     if (!result.isConfirmed) return;
 
     try {
-      await fetch("http://localhost:3000/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      await Swal.fire({
-        title: "Logged out!",
-        text: "You have been logged out successfully.",
-        icon: "success",
-        timer: 3000,
-        showConfirmButton: false,
-        timerProgressBar: true,
-      });
-
-      navigate("/login");
+      await logout();
+      
+      navigate("/login", { replace: true });
     } catch (err) {
       console.error("Logout failed", err);
 
@@ -96,7 +62,7 @@ export default function Sidebar() {
       path: "/suites",
       label: "Suites",
       icon: "/assets/icon/suites.svg",
-      activeMatch: ["/suites", "/detail-suites"],
+      activeMatch: ["/suites", "/detail-suites"], // sub route (detail suites)
     },
     {
       path: "/task-management",
@@ -106,19 +72,21 @@ export default function Sidebar() {
   ];
 
   const isActive = (item) => {
+    // kalau ada activeMatch, cek apakah pathname mengandung salah satu match
     if (item.activeMatch) {
       return item.activeMatch.some((path) => location.pathname.includes(path));
     }
+    // selain itu, cocokkan exact path
     return location.pathname === item.path;
   };
 
   //  Filter menu berdasarkan role
   const visibleMenuItems = menuItems.filter((item) => {
     if (role === "dev" && item.path === "/") {
-      // developer TIDAK boleh melihat Dashboard
+      // developer TIDAK bisa mengakses Dashboard
       return false;
     }
-    // qa & role lain (atau role belum kebaca) boleh lihat semua
+    // selain dev (qa) boleh lihat semua
     return true;
   });
 

@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import ChartSection from "../components/Chart";
 import Header from "../components/Header";
-import { Navigate } from "react-router-dom";
 import { Link } from 'react-router-dom';
 
-
 export default function Dashboard() {
-  const [testSuites, setTestSuites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [inProgressTask, setInProgressTask] = useState(0);
+  const [testSuites, setTestSuites] = useState([]); // data suites + testcases dari backend
+  const [loading, setLoading] = useState(true); // true saat suites masih di fetch
+  const [inProgressTask, setInProgressTask] = useState(0); // jumlah task status = "in progress"
 
   /* ======================================================
    * HELPERS
@@ -22,14 +20,16 @@ export default function Dashboard() {
 
   const normalizeStatus = (status) => {
     if (status === 'PASSED') return 'PASSED';
-    if (status === 'FAILED' || status === 'BROKEN') return 'FAILED';
+    if (status === 'FAILED' || status === 'BROKEN') return 'FAILED'; // status broken dianggap failed
     return status;
   };
 
+  // hitung jumlah passed/failed/total di sebuah suite
   const getFilteredCounts = (suite) => {
     const passed = suite.testCases.filter(tc => tc.status === 'PASSED').length;
     const failed = suite.testCases.filter(tc => tc.status === 'FAILED').length;
     const total = suite.testCases.length;
+    // persentase passed
     const percentage = total === 0 ? 0 : Math.round((passed / total) * 100);
     return { passed, failed, total, percentage };
   };
@@ -40,13 +40,16 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchSuites = async () => {
       try {
+        // fetch grouped testcases dari backend
         const res = await fetch('http://localhost:3000/api/grouped-testcases', { credentials: 'include' });
         const data = await res.json();
 
+        // mapping data backend -> format yang dipakai UI
         const mapped = data.map((suite, idx) => ({
           id: `${suite.parentCode}-${idx}`,
           parentCode: suite.parentCode,
 
+          // map setiap testcase agar field rapih
           testCases: suite.testCases.map(tc => ({
             name: tc.suiteName,
             testName: tc.testName,
@@ -62,7 +65,7 @@ export default function Dashboard() {
 
         setTestSuites(mapped);
       } catch (err) {
-        console.error(err);
+        console.error("fetchSuites error:", err);
       } finally {
         setLoading(false);
       }
@@ -75,6 +78,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchInProgressTask = async () => {
       try {
+        // ambil task-management dengan status "In Progress"
         const res = await fetch(
           "http://localhost:3000/api/task-management?status=In%20Progress",
           { credentials: "include" }
@@ -82,28 +86,35 @@ export default function Dashboard() {
         const data = await res.json();
         setInProgressTask(data.length);
       } catch (err) {
-        console.error(err);
+        console.error("fetchInProgressTask error:", err);
       }
     };
 
     fetchInProgressTask();
   }, []);
 
+  // loading ui (render dashboard)
   if (loading) return <p className="p-6 text-center">Loading...</p>;
 
   /* ======================================================
    * CALCULATE STATS
    * ====================================================== */
+  // total testcase semua suite
   const totalTests = testSuites.reduce((acc, suite) => acc + suite.testCases.length, 0);
+
+  // total testcase passed  
   const totalPassed = testSuites.reduce(
     (acc, suite) => acc + getFilteredCounts(suite).passed,
     0
   );
+
+  // total testcase failed
   const totalFailed = testSuites.reduce(
     (acc, suite) => acc + getFilteredCounts(suite).failed,
     0
   );
 
+  // statistik
   const stats = [
     { title: "Total Test Cases", value: totalTests, icon: "/assets/icon/list.svg", bgColor: "bg-[#EFF6FF]" },
     { title: "Total Test Passed", value: totalPassed, icon: "/assets/icon/passed.svg", bgColor: "bg-[#F0FDF4]" },
@@ -116,7 +127,7 @@ export default function Dashboard() {
       {/* Header Section */}
       <Header />
 
-      {/* Stats Cards Section */}
+      {/* Statistic Cards Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
         {stats.map((stat, index) => (
           <div
@@ -141,6 +152,7 @@ export default function Dashboard() {
       <div className="bg-white rounded-2xl shadow-[0_2px_7px_-3px_rgba(0,0,0,0.15)] p-6 mt-4">
         <h4 className="font-semibold text-lg mb-4">Suites</h4>
         <div className="space-y-5">
+          {/* menampilkan 5 suites pertama */}
           {testSuites.slice(0, 5).map((suite, index) => {
             const { passed, failed, total, percentage } = getFilteredCounts(suite);
             return (
@@ -151,17 +163,20 @@ export default function Dashboard() {
                 <div className={`w-2 h-2 rounded-full ${passed === total ? 'bg-green-500' : failed > 0 ? 'bg-red-500' : 'bg-yellow-500'}`}></div>
                 <h6 className="font-medium flex-1">{suite.parentCode}</h6>
                 <span className="text-sm text-teal-600">{passed}/{total}</span>
+                {/* progress bar */}
                 <div className="w-24 bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-teal-500 h-2 rounded-full" 
                     style={{ width: `${percentage}%` }}
                   ></div>
                 </div>
+                {/* persentase passed */}
                 <span className="text-sm text-gray-600 w-12 text-right">{percentage}%</span>
               </div>
             );
           })}
         </div>
+        {/* button navigasi ke suites */}
         <Link to="/suites">
           <button className="w-full bg-black text-white py-3 rounded-lg mt-4 hover:bg-gray-800 transition-colors">
             View All Suites

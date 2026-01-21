@@ -15,17 +15,31 @@ export const AuthProvider = ({ children }) => {
       if (!res.ok) throw new Error("Unauthorized");
 
       const data = await res.json();
+      const nextUser = { id: data.userId, username: data.username, role: data.role };
 
-      setUser({
-        id: data.userId,
-        username: data.username,
-        role: data.role,
-      });
+      setUser(nextUser);
+      return nextUser;
     } catch {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
+  };
+
+  const logout = async () => {
+    const res = await fetch("http://localhost:3000/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Logout failed: ${res.status} ${text}`);
+    }
+
+    setUser(null); // ✅ wajib
+    return true;
   };
 
   useEffect(() => {
@@ -33,12 +47,10 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, refreshUser: fetchMe }}>
+    <AuthContext.Provider value={{ user, loading, refreshUser: fetchMe, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-
-// ⬇️ PASTIKAN NAMA EXPORT BENAR
 export const useAuth = () => useContext(AuthContext);

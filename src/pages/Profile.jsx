@@ -1,55 +1,43 @@
+import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import React, { useEffect, useState } from 'react';
+import { useAuth } from "../context/AuthContext";
+
+export default function EditProfile() {
+    const navigate = useNavigate(); // redirect page
+    const { user, loading, refreshUser } = useAuth();
 
 
-const EditProfile = () => {
-    const navigate = useNavigate();
-
-    const [currentPassword, setCurrentPassword] = useState("");
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-    const [showNewPassword, setShowNewPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [username, setUsername] = useState("");
+    const [currentPassword, setCurrentPassword] = useState(""); 
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+
     const [newPassword, setNewPassword] = useState("");
+    const [showNewPassword, setShowNewPassword] = useState(false);
+
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // FETCH PROFILE DATA LOGIN
-   useEffect(() => {
-    const fetchMe = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/auth/me", {
-          method: "GET",
-          credentials: "include",
-        });
+    const [saving, setSaving] = useState(false);
 
-        if (!res.ok) {
-          // user tidak login
-          navigate("/login");
-          return;
-        }
+    // isi username dari authcontext
+    useEffect(() => {
+      if (user?.username) setUsername(user.username);
+    }, [user?.username]);
 
-        const data = await res.json();
+    if (loading) return <div>Checking session...</div>;
+    if (!user) return <Navigate to="/login" replace />;
 
-        if (data.loggedIn) {
-          setUsername(data.username);
-        }
-      } catch (err) {
-        console.error("Gagal mengambil data user", err);
-      }
-    };
-
-    fetchMe();
-  }, [navigate]);
-
-
-
+  
     // HANDLE SUBMIT FORM
     const handleSubmit = async (e) => {
       e.preventDefault();
 
-    if (!username && !newPassword) {
+    const usernameChanged = username.trim() !== user.username;
+    const passwordChanged = newPassword.trim().length > 0;
+
+    // kalau ga ada perubahan apapun
+    if (!usernameChanged && !passwordChanged) {
       return Swal.fire({
         icon: "info",
         title: "No changes detected",
@@ -64,13 +52,14 @@ const EditProfile = () => {
       });
     }
 
-    if (newPassword && newPassword !== confirmPassword) {
+    // validasi password confirm
+    if (passwordChanged && newPassword !== confirmPassword) {
       return Swal.fire({
         icon: "error",
         title: "Password mismatch",
         html: `
           <p class="text-sm text-gray-500">
-            The confirmation password doesn't match the new password.
+            Confirmation password doesn't match.
           </p>
         `,
         showConfirmButton: false,
@@ -79,16 +68,14 @@ const EditProfile = () => {
       });
     }
 
-
-      setLoading(true);
-
+      setSaving(true);
       try {
         const res = await fetch("http://localhost:3000/auth/edit-profile", {
           method: "PUT",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            username,
+            username: username.trim(),
             currentPassword,
             newPassword,
             confirmPassword,
@@ -117,7 +104,7 @@ const EditProfile = () => {
           title: "Action completed",
           html: `
             <p class="text-sm text-gray-500">
-              ${data.message}
+              ${data.message || "Profile updated."}
             </p>
           `,
           timer: 3000,
@@ -125,11 +112,11 @@ const EditProfile = () => {
           showConfirmButton: false,
         });
 
-        if (data.message.includes("login")) {
-          navigate("/login");
-        }
+        await refreshUser(); // refresh authcontext agar navbar ikut update usn baru
 
-        window.location.reload();
+        if (data.message.includes("login")) {
+          navigate("/login", { replace: true });
+        }
         } catch (err) {
         Swal.fire({
           icon: "error",
@@ -145,7 +132,7 @@ const EditProfile = () => {
           showConfirmButton: false,
         });
         } finally {
-          setLoading(false);
+          setSaving(false);
         }
     };
 
@@ -341,5 +328,3 @@ const EditProfile = () => {
 );
 
 };
-
-export default EditProfile;

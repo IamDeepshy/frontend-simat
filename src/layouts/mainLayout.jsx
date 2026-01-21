@@ -1,7 +1,6 @@
 import Sidebar from "../components/Sidebar";
 import BarProfile from "../components/BarProfile";
 import { Outlet } from "react-router-dom";
-import { Bar } from "react-chartjs-2";
 
 export default function MainLayout() {
   return (

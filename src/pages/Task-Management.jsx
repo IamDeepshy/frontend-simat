@@ -172,7 +172,12 @@ export default function TaskManagement() {
         { credentials: "include" }
       );
 
-      if (!res.ok) return;
+      // log error backend (debug) jika fetch task gagal
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("fetchTasks failed:", res.status, err);
+        return;
+      }
 
       const list = await res.json();
 
@@ -481,7 +486,7 @@ export default function TaskManagement() {
               </div>
             ) : (
               columnTasks.map((task) => (
-                <TaskCard key={task.id} task={task} dragDisabled={!isDev || task.status === 'Done'} />
+                <TaskCard key={task.id} task={task} dragDisabled={  !isDev || (task.status || "").toLowerCase().trim() === "done"} />
               ))
             )}
           </div>

@@ -1,22 +1,24 @@
 import React, { useState } from 'react';
-import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { useAuth } from "../context/AuthContext";
 
-const Navbar = () => {
+export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const { user, loading, logout } = useAuth();  
+  const navigate = useNavigate(); // redirect (navigasi)
 
- if (loading) {
-  return null; // atau skeleton
- }
+  if (loading) {
+    return null; // return null agar gak render sidebar dll 
+  }
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  // Logout
+  // =========================
+  // HANDLE LOGOUT
+  // =========================
    const handleLogout = async () => {
       const result = await Swal.fire({
         title: "Are you sure?",
@@ -34,23 +36,12 @@ const Navbar = () => {
         reverseButtons: false
       });
   
+      // kalau klik cancel
       if (!result.isConfirmed) return;
   
       try {
-        await fetch("http://localhost:3000/auth/logout", {
-          method: "POST",
-          credentials: "include",
-        });
-  
-        await Swal.fire({
-          title: "Logged out!",
-          text: "You have been logged out successfully.",
-          icon: "success",
-          timer: 3000,
-          showConfirmButton: false,
-          timerProgressBar: true
-        });
-  
+        await logout(); // AuthContext
+
         navigate("/login");
       } catch (err) {
         console.error("Logout failed", err);
@@ -69,7 +60,6 @@ const Navbar = () => {
     }
   };
 
-
   return (
     <nav className="fixed top-0 right-0 left-[260px] h-20 bg-white shadow-sm border-b border-gray-200 px-6 pt-4 z-40">
       <div className="flex items-center justify-between">
@@ -77,15 +67,18 @@ const Navbar = () => {
         </div>
 
         <div className="relative">
+          {/* BUTTON USER (Avatar + Username) */}
           <button
             onClick={toggleDropdown}
             className="flex items-center space-x-3 bg-gray-100 hover:bg-gray-200 rounded-lg px-4 py-2 transition-colors"
           >
+            {/* Avatar icon */}
             <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
+            {/* username dari AuthContext */}
             <span className="text-sm font-medium text-gray-700 capitalize">{user?.username}</span>
             <svg 
               className={`w-4 h-4 text-gray-600 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} 
@@ -96,12 +89,13 @@ const Navbar = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-
+          {/* DROPDOWN MENU */}
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
               <div className="px-4 py-3 border-b border-gray-100">
                 <p className="text-sm font-medium text-gray-900 capitalize">{user?.username}</p>
               </div>
+              {/* Edit Profile */}
               <Link to="/profile">
                 <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-3">
                   <svg className="w-4 h-4 size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
@@ -110,7 +104,7 @@ const Navbar = () => {
                   <span>Edit Profile</span>
                 </button>
               </Link>
-              
+              {/* logout */}
               <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-3">
                 <svg className="w-4 h-4 size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -125,4 +119,3 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;

@@ -1,30 +1,14 @@
-import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function RequireAuth() {
-  const [loading, setLoading] = useState(true);
-  const [isAuth, setIsAuth] = useState(false);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/auth/me", {
-          credentials: "include",
-        });
-
-        setIsAuth(res.ok); // 200 = login, 401 = tidak login
-      } catch {
-        setIsAuth(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
+  // tampilkan loading jika masih cek auth
   if (loading) return <div>Checking session...</div>;
-  if (!isAuth) return <Navigate to="/login" replace />;
+  
+  // redirect ke login jika belum login
+  if (!user) return <Navigate to="/login" replace />;
 
   return <Outlet />;
 }
