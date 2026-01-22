@@ -312,7 +312,10 @@ export default function TestCaseAccordion() {
   const getRerunPolicy = (taskStatus, role) => {
     // Jika tidak ada task/defect aktif, rerun boleh
     if (!taskStatus) {
-      return { disabled: false, reason: "" };
+      return { 
+        disabled: false, 
+        reason: "",
+      };
     }
 
     // Saat task masih dikerjakan DEV: QA dilarang rerun, DEV boleh rerun
@@ -320,7 +323,7 @@ export default function TestCaseAccordion() {
       if (role === "qa") {
         return {
           disabled: true,
-          reason: "Rerun disabled: task sedang dikerjakan DEV.",
+          reason: "Rerun is disabled while the task is being worked on by the developer.",
         };
       }
       return { disabled: false, reason: "" };
@@ -331,7 +334,7 @@ export default function TestCaseAccordion() {
       if (role === "dev") {
         return {
           disabled: true,
-          reason: "Rerun disabled: task sudah Done dan sedang diverifikasi QA.",
+          reason: "Rerun is disabled while the task is being verified by QA.",
         };
       }
       return { disabled: false, reason: "" };
@@ -474,7 +477,7 @@ export default function TestCaseAccordion() {
             `}
           title={
             isExportDisabled
-              ? "Tidak ada data untuk di-export"
+              ? "No data available for export"
               : "Export Report"
           }
         >

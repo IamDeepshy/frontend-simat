@@ -220,8 +220,9 @@ export default function DetailSuites() {
     );
   }
 
+
   // RERUN POLICY aturan rerun berdasarkan status defect + role user
-  const rerunPolicy = (() => {
+  const getRerunPolicy = (() => {
     // Default: boleh rerun kalau tidak ada defect aktif
     if (!defectDetails) {
       return {
@@ -232,27 +233,23 @@ export default function DetailSuites() {
 
     const status = defectDetails.status;
 
-    // Saat task sedang dikerjakan DEV (To Do / In Progress)
-    // - QA: tidak boleh rerun
-    // - DEV: boleh rerun
+    // Saat task masih dikerjakan DEV: QA dilarang rerun, DEV boleh rerun
     if (["To Do", "In Progress"].includes(status)) {
       if (user?.role === "qa") {
         return {
           disabled: true,
-          reason: "Rerun disabled: task sedang dikerjakan DEV.",
+          reason: "Rerun is disabled while the task is being worked on by the developer.",
         };
       }
       return { disabled: false, reason: "" };
     }
 
-    // Saat Done (verifikasi QA)
-    // - DEV: tidak boleh rerun
-    // - QA: boleh rerun
+    // Saat task Done (fase verifikasi): DEV dilarang rerun, QA boleh rerun
     if (status === "Done") {
       if (user?.role === "dev") {
         return {
           disabled: true,
-          reason: "Rerun disabled: task sudah Done dan sedang diverifikasi QA.",
+          reason: "Rerun is disabled while the task is being verified by QA.",
         };
       }
       return { disabled: false, reason: "" };
@@ -262,8 +259,7 @@ export default function DetailSuites() {
     return { disabled: false, reason: "" };
   })();
 
-  // Flag yang dipakai untuk disable tombol rerun
-  const disableRerun = rerunPolicy.disabled;
+  const disableRerun = isRerunning || getRerunPolicy.disabled;
 
   // RERUN VALIDATION membandingkan waktu lastRunAt testcase vs updated_at defect Done
   const isRerunAfterDone = (lastRunAt, doneUpdatedAt) => {
@@ -681,26 +677,25 @@ export default function DetailSuites() {
                 <button
                   onClick={() => {
                     // Safety: jika sedang rerun atau policy disable, jangan jalan
-                    if (isRerunning || disableRerun) return;
+                    if (disableRerun) return;
 
                     // Trigger rerun dari hook
                     rerun(testCase);
                   }}
-                  disabled={isRerunning || disableRerun}
+                  disabled={disableRerun}
+                  title={getRerunPolicy.reason} // tooltip
                   className={`px-8 py-2 rounded-lg flex items-center gap-2 transition-all
                       ${
-                        isRerunning || disableRerun
+                        disableRerun
                           ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                           : "bg-white border border-gray-300 hover:shadow-md hover:-translate-y-0.5"
                       }
                     `}
-                  // Tooltip jika tombol disabled oleh policy
-                  title={disableRerun ? "Rerun is disabled while the task is in progress." : ""}
                 >
                   <img
                     src="/assets/icon/rerun.svg"
                     alt="Rerun icon"
-                    className={`w-4 h-4 ${isRerunning || disableRerun ? "opacity-50" : ""}`}
+                    className={`w-4 h-4 ${disableRerun ? "opacity-50" : ""}`}
                   />
                   Rerun Test
                 </button>
@@ -720,12 +715,16 @@ export default function DetailSuites() {
                         }
                       `}
                       // Tooltip jika create defect disabled karena sudah ada defect aktif
-                      title={disableCreateDefect ? "A defect is already active and being handled" : ""}
+                      title={disableCreateDefect ? "Create Defect is disabled due to an active defect." : ""}
                     >
                       <img
                         src="/assets/icon/defect.svg"
                         alt="Defect icon"
-                        className={`w-4 h-4 ${disableCreateDefect ? "opacity-50" : ""}`}
+                         className={`w-4 h-4 transition
+                          ${disableCreateDefect
+                            ? "filter invert brightness-60 opacity-40"
+                            : ""}
+                        `}
                       />
                       Create Defect
                     </button>
