@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 export default function Dashboard() {
   const [testSuites, setTestSuites] = useState([]); // data suites + testcases dari backend
   const [loading, setLoading] = useState(true); // true saat suites masih di fetch
-  const [inProgressTask, setInProgressTask] = useState(0); // jumlah task status = "in progress"
+  const [inProgressTask, setInProgressTask] = useState(0); // jumlah issue status = "in progress"
 
   /* ======================================================
    * HELPERS
@@ -78,9 +78,9 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchInProgressTask = async () => {
       try {
-        // ambil task-management dengan status "In Progress"
+        // ambil issues dengan status "In Progress"
         const res = await fetch(
-          "http://localhost:3000/api/task-management?status=In%20Progress",
+          "http://localhost:3000/api/issues?status=In%20Progress",
           { credentials: "include" }
         );
         const data = await res.json();
@@ -119,7 +119,7 @@ export default function Dashboard() {
     { title: "Total Test Cases", value: totalTests, icon: "/assets/icon/list.svg", bgColor: "bg-[#EFF6FF]" },
     { title: "Total Test Passed", value: totalPassed, icon: "/assets/icon/passed.svg", bgColor: "bg-[#F0FDF4]" },
     { title: "Total Test Failed", value: totalFailed, icon: "/assets/icon/failed.svg", bgColor: "bg-[#FEF2F2]" },
-    { title: "In Progress Task", value: inProgressTask, icon: "/assets/icon/progress.svg", bgColor: "bg-[#FEFCE8]" },
+    { title: "In Progress Issue", value: inProgressTask, icon: "/assets/icon/progress.svg", bgColor: "bg-[#FEFCE8]" },
   ];
 
   return (

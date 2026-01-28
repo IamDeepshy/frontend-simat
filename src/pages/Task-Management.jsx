@@ -39,7 +39,7 @@ export default function TaskManagement() {
           setUser(data); // { username, role }
         }
       } catch (err) {
-        console.error("Error fetch /auth/me di TaskManagement:", err);
+        console.error("Error fetch /auth/me di Issues:", err);
       }
     };
 
@@ -66,7 +66,7 @@ export default function TaskManagement() {
   // ========================================================================
   // DROPDOWN OPTIONS
   // ========================================================================
-  // filters (query params untuk GET /api/task-management)
+  // filters (query params untuk GET /api/issues)
   const [filters, setFilters] = useState({
     status: 'all',
     assignee: 'all',
@@ -98,7 +98,7 @@ export default function TaskManagement() {
   // container awal (kolom asal sebelum dipindah (untuk validasi rule))
   const [originColumn, setOriginColumn] = useState(null);
 
-  // ID task yang sedang di drag (DragOverlay)
+  // ID Issue yang sedang di drag (DragOverlay)
   const [activeId, setActiveId] = useState(null);
 
   // rollback UI beneran kalau invalid / PATCH gagal
@@ -124,10 +124,10 @@ export default function TaskManagement() {
   // auto refresh setelah done
   const [refreshKey, setRefreshKey] = useState(0);
   
-  // show hidden tasks
+  // show hidden issues
   const [showHidden, setShowHidden] = useState(false);
 
-  // Function to filter latest task by suiteName (untuk menampilkan di kanban)
+  // Function to filter latest issue by suiteName (untuk menampilkan di kanban)
   const filterLatestBySuiteName = (tasks) => {
     const map = new Map();
 
@@ -168,14 +168,14 @@ export default function TaskManagement() {
 
       // fetch list
       const res = await fetch(
-        `http://localhost:3000/api/task-management?${params.toString()}`,
+        `http://localhost:3000/api/issues?${params.toString()}`,
         { credentials: "include" }
       );
 
-      // log error backend (debug) jika fetch task gagal
+      // log error backend (debug) jika fetch issue gagal
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        console.error("fetchTasks failed:", res.status, err);
+        console.error("fetchIssue failed:", res.status, err);
         return;
       }
 
@@ -232,12 +232,12 @@ export default function TaskManagement() {
     return null;
   };
 
-  // update status task (dev)
+  // update status issue (dev)
   const updateTaskStatus = async (taskId, newColumnId) => {
     const newStatus = columnToStatus(newColumnId);
     if (!newStatus) return;
 
-    const res = await fetch(`http://localhost:3000/api/task-management/${taskId}/status`, {
+    const res = await fetch(`http://localhost:3000/api/issues/${taskId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -262,7 +262,7 @@ export default function TaskManagement() {
     })
   );
 
-  // menemukan task id di kolom mana 
+  // menemukan issue id di kolom mana 
   const findContainer = (id) => {
     if (id in tasksByColumn) return id;
 
@@ -366,7 +366,7 @@ export default function TaskManagement() {
       try {
         await updateTaskStatus(String(active.id), targetColumn);
 
-        // AUTO REFRESH TASK STATUS DONE
+        // AUTO REFRESH ISSUE STATUS DONE
         if (targetColumn === "done") {
           setRefreshKey((prev) => prev + 1);
         }
@@ -380,7 +380,7 @@ export default function TaskManagement() {
     setOriginColumn(null);
   };
 
-  // komponen taskcard
+  // komponen card issue
   const TaskCard = ({ task, dragDisabled }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
       useSortable({ id: String(task.id), disabled: dragDisabled });
@@ -393,7 +393,7 @@ export default function TaskManagement() {
   const isReopened = !!task.reopenedAt;
 
   return (
-    // task card
+    // card issue
     <div
       ref={setNodeRef}
       style={style}
@@ -481,7 +481,7 @@ export default function TaskManagement() {
                   <svg className="w-16 h-16 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
-                  <p className="text-sm">Drop tasks here</p>
+                  <p className="text-sm">Drop issues here</p>
                 </div>
               </div>
             ) : (
@@ -564,7 +564,7 @@ export default function TaskManagement() {
     );
   };
 
-  // get active task untuk drag overlay
+  // get active issue untuk drag overlay
   const activeTask = activeId 
     ? Object.values(tasksByColumn) 
       .flat() 
@@ -575,8 +575,8 @@ export default function TaskManagement() {
     <div className="flex-grow ml-[260px] pt-4 pb-8 pr-8 pl-8 min-h-screen overflow-y-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-semibold">Task Management</h1>
-        <p className="text-gray-500 mt-1">Track and manage your testing and development tasks</p>
+        <h1 className="text-3xl font-semibold">Issue Management</h1>
+        <p className="text-gray-500 mt-1">Track and manage testing issues from failed test cases</p>
       </div>
 
       {/* Filters */}
@@ -648,12 +648,12 @@ export default function TaskManagement() {
             />
           </svg>
           <p className="text-sm text-blue-700">
-            <strong>Tip:</strong> Drag and drop tasks between columns to update their status
+            <strong>Tip:</strong> Drag and drop issues between columns to update their status
           </p>
         </div>
       )}
 
-      {/* Show Hidden Tasks Checkbox */}
+      {/* Show Hidden Issues Checkbox */}
       <div className="flex items-center gap-2 mt-2 mb-6">
         <input
           type="checkbox"
@@ -666,7 +666,7 @@ export default function TaskManagement() {
           htmlFor="showHidden"
           className="text-sm text-gray-700 select-none cursor-pointer"
         >
-          Show hidden tasks
+          Show hidden issues
         </label>
       </div>
 

@@ -65,8 +65,8 @@ export default function Sidebar() {
       activeMatch: ["/suites", "/detail-suites"], // sub route (detail suites)
     },
     {
-      path: "/task-management",
-      label: "Task Management",
+      path: "/issues",
+      label: "Issues",
       icon: "/assets/icon/management.svg",
     },
   ];

@@ -194,7 +194,7 @@ export default function DetailSuites() {
     }
   };
 
-  // Helper class untuk badge status task (To Do/In Progress/Done)
+  // Helper class untuk badge status issue  (To Do/In Progress/Done)
   const getTaskStatusClass = (status) => {
     switch(status) {
       case 'To Do': return 'bg-[#B9B9B9] text-[#323232]';
@@ -233,23 +233,23 @@ export default function DetailSuites() {
 
     const status = defectDetails.status;
 
-    // Saat task masih dikerjakan DEV: QA dilarang rerun, DEV boleh rerun
+    // Saat issue  masih dikerjakan DEV: QA dilarang rerun, DEV boleh rerun
     if (["To Do", "In Progress"].includes(status)) {
       if (user?.role === "qa") {
         return {
           disabled: true,
-          reason: "Rerun is disabled while the task is being worked on by the developer.",
+          reason: "Rerun is disabled while this issue is being worked on by the developer.",
         };
       }
       return { disabled: false, reason: "" };
     }
 
-    // Saat task Done (fase verifikasi): DEV dilarang rerun, QA boleh rerun
+    // Saat issue  Done (fase verifikasi): DEV dilarang rerun, QA boleh rerun
     if (status === "Done") {
       if (user?.role === "dev") {
         return {
           disabled: true,
-          reason: "Rerun is disabled while the task is being verified by QA.",
+          reason: "Rerun is disabled while this issue is being verified by QA.",
         };
       }
       return { disabled: false, reason: "" };
@@ -272,7 +272,7 @@ export default function DetailSuites() {
     return lastRun > doneAt;
   };
 
-  // rerunValid = rerun terakhir terjadi setelah task Done terakhir diupdate
+  // rerunValid = rerun terakhir terjadi setelah issue  Done terakhir diupdate
   const rerunValid = isRerunAfterDone(testCase?.lastRunAt, defectDetails?.updated_at);
 
   // Complete Action untuk QA muncul jika hasil rerun valid dan PASSED
@@ -282,14 +282,14 @@ export default function DetailSuites() {
     rerunValid &&
     testCase?.status === "PASSED";
 
-  // Handle complete task (menghapus task dari kanban board)
+  // Handle complete issue  (menghapus issue  dari kanban board)
   const handleCompleteTask = async () => {
     // Konfirmasi sebelum complete
     const result = await Swal.fire({
-      title: "Complete task?",
+      title: "Complete this issue?",
       html: `
         <p class="text-sm text-gray-500">
-          This task will be removed from the kanban board.
+          This issue will be removed from the kanban board.
         </p>
       `,
       icon: "question",
@@ -304,9 +304,9 @@ export default function DetailSuites() {
     // Jika user cancel, stop
     if (!result.isConfirmed) return;
 
-    // Hit API untuk complete task
+    // Hit API untuk complete issue 
     const res = await fetch(
-      `http://localhost:3000/api/tasks/${defectDetails.id}/complete`,
+      `http://localhost:3000/api/issues/${defectDetails.id}/complete`,
       {
         method: "PATCH",
         credentials: "include",
@@ -333,10 +333,10 @@ export default function DetailSuites() {
     // Jika sukses, tampilkan success swal
     Swal.fire({
       icon: "success",
-      title: "Task completed",
+      title: "Issue completed",
       html: `
         <p class="text-sm text-gray-500">
-          The task has been successfully completed.
+          This issue has been successfully completed.
         </p>
       `,
       showConfirmButton: false,
@@ -357,7 +357,7 @@ export default function DetailSuites() {
         // 1) ambil status testcase terbaru
         const latest = await fetchTestCase();
 
-        // 2) ambil defect/task terbaru
+        // 2) ambil defect/issue  terbaru
         const latestDefect = await fetchActiveDefect();
 
         const status = latest?.status || null; // "PASSED" / "FAILED" / null
@@ -426,7 +426,7 @@ export default function DetailSuites() {
     rerunValid &&
     testCase?.status === "FAILED";
 
-  //  Reopen task mengubah status task ke To Do
+  //  Reopen issue mengubah status issue ke To Do
   const reopenTask = async () => {
     console.log("Reopen API hit:", defectDetails.id);
 
@@ -438,10 +438,10 @@ export default function DetailSuites() {
     if (!taskId) {
       return Swal.fire({
         icon: "error",
-        title: "Task not found",
+        title: "Issue not found",
         html: `
           <p class="text-sm text-gray-500">
-            The task ID could not be found. Please refresh the page and try again.
+            This Issue ID could not be found. Please refresh the page and try again.
           </p>
         `,
         showConfirmButton: false,
@@ -452,10 +452,10 @@ export default function DetailSuites() {
 
     // Konfirmasi sebelum reopen
     const confirm = await Swal.fire({
-      title: "Reopen task?",
+      title: "Reopen this issue?",
       html: `
         <p class="text-sm text-gray-500">
-          The task status will be moved back to <b>To Do</b><br/>
+          This issue status will be moved back to <b>To Do</b><br/>
           and recorded as reopened.
         </p>
       `,
@@ -470,10 +470,10 @@ export default function DetailSuites() {
 
     if (!confirm.isConfirmed) return;
 
-    console.log("CALLING API: /api/tasks/" + taskId + "/reopen");
+    console.log("CALLING API: /api/issues/" + taskId + "/reopen");
 
     // Hit API reopen
-    const res = await fetch(`http://localhost:3000/api/tasks/${taskId}/reopen`, {
+    const res = await fetch(`http://localhost:3000/api/issues/${taskId}/reopen`, {
       method: "PATCH",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -488,10 +488,10 @@ export default function DetailSuites() {
     if (!res.ok) {
       return Swal.fire({
         icon: "error",
-        title: "Failed to reopen task",
+        title: "Failed to reopen issue",
         html: `
           <p class="text-sm text-gray-500">
-            ${body.message || "The task could not be reopened. Please try again."}
+            ${body.message || "This issue could not be reopened. Please try again."}
           </p>
         `,
         showConfirmButton: false,
@@ -503,10 +503,10 @@ export default function DetailSuites() {
     // Jika sukses, tampilkan success swal dan refresh defect
     Swal.fire({
       icon: "success",
-      title: "Task reopened",
+      title: "Issue reopened",
       html: `
         <p class="text-sm text-gray-500">
-          The task has been successfully reopened.
+          This issue has been successfully reopened.
         </p>
       `,
       timerProgressBar: true,
@@ -544,7 +544,7 @@ export default function DetailSuites() {
 
           <div>
             <strong>Tip:</strong><br/>
-            If <b>Yes</b>, the task will be reopened.<br/>
+            If <b>Yes</b>, this issue will be reopened.<br/>
             If <b>No</b>, a new defect will be created.
           </div>
         </div>
@@ -567,7 +567,7 @@ export default function DetailSuites() {
     // Jika dismiss (klik X / klik luar), stop
     if (result.isDismissed) return;
 
-    // YES -> reopen task
+    // YES -> reopen issue 
     if (result.isConfirmed) {
       await reopenTask();
       return;
@@ -593,7 +593,7 @@ export default function DetailSuites() {
     return d.toLocaleString("id-ID");
   };
 
-  // Flag untuk menampilkan info bahwa task pernah di-reopen
+  // Flag untuk menampilkan info bahwa issue  pernah di-reopen
   const showReopen = !!defectDetails?.reopenedAt;
 
   // Menentukan jumlah kolom grid untuk section action
@@ -743,7 +743,7 @@ export default function DetailSuites() {
               </div>
             </div>
 
-           {/* Details Section menampilkan info task defect */}
+           {/* Details Section menampilkan info issue  defect */}
             {defectDetails && (
               <div className="mb-6 pb-6 border-b border-gray-200">
                 <h5 className="text-lg font-semibold mb-4">Details</h5>
@@ -773,9 +773,9 @@ export default function DetailSuites() {
                     </span>
                   </div>
 
-                  {/* Task Status */}
+                  {/* issue  Status */}
                   <div>
-                    <p className="text-sm font-medium text-gray-500 mb-2">Task Status</p>
+                    <p className="text-sm font-medium text-gray-500 mb-2">Issue Status</p>
                     <span
                       className={`inline-block px-5 py-1.5 rounded-full text-xs font-semibold ${getTaskStatusClass(
                         defectDetails.status
@@ -796,7 +796,7 @@ export default function DetailSuites() {
                   {/* Updated At */}
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-3.5">
-                      Update Task Status At
+                      Update Issue Status At
                     </p>
                     <span className="text-sm text-gray-900 font-medium">
                       {new Date(defectDetails.updated_at).toLocaleString("id-ID")}
@@ -809,13 +809,13 @@ export default function DetailSuites() {
                       <p className="text-sm font-medium text-gray-500 mb-3.5">Actions</p>
 
                       <div className="flex items-center gap-2">
-                        {/* Complete task (QA + Done + rerun valid + PASSED) */}
+                        {/* Complete issue  (QA + Done + rerun valid + PASSED) */}
                         {showCompleteAction && (
                           <button
                             onClick={handleCompleteTask}
                             className="w-6 h-6 flex items-center justify-center rounded-sm
                                         bg-green-600 text-white hover:bg-green-700"
-                            title="Complete Task"
+                            title="Complete Issue"
                           >
                             <i className="fa-solid fa-check text-sm"></i>
                           </button>

@@ -257,7 +257,7 @@ export default function TestCaseAccordion() {
     return '';
   };
 
-  // Mapping class UI untuk task status (To Do, In Progress, Done)
+  // Mapping class UI untuk issue status (To Do, In Progress, Done)
   const getTaskStatusClass = (status) => {
     switch (status) {
       case 'To Do':
@@ -308,9 +308,9 @@ export default function TestCaseAccordion() {
     );
   };
 
-  // Aturan disable rerun berdasarkan status task/defect & role user (qa/dev)
+  // Aturan disable rerun berdasarkan status issue & role user (qa/dev)
   const getRerunPolicy = (taskStatus, role) => {
-    // Jika tidak ada task/defect aktif, rerun boleh
+    // Jika tidak ada issue/defect aktif, rerun boleh
     if (!taskStatus) {
       return { 
         disabled: false, 
@@ -318,23 +318,23 @@ export default function TestCaseAccordion() {
       };
     }
 
-    // Saat task masih dikerjakan DEV: QA dilarang rerun, DEV boleh rerun
+    // Saat issue  masih dikerjakan DEV: QA dilarang rerun, DEV boleh rerun
     if (["To Do", "In Progress"].includes(taskStatus)) {
       if (role === "qa") {
         return {
           disabled: true,
-          reason: "Rerun is disabled while the task is being worked on by the developer.",
+          reason: "Rerun is disabled while this issue is being worked on by the developer.",
         };
       }
       return { disabled: false, reason: "" };
     }
 
-    // Saat task Done (fase verifikasi): DEV dilarang rerun, QA boleh rerun
+    // Saat issue  Done (fase verifikasi): DEV dilarang rerun, QA boleh rerun
     if (taskStatus === "Done") {
       if (role === "dev") {
         return {
           disabled: true,
-          reason: "Rerun is disabled while the task is being verified by QA.",
+          reason: "Rerun is disabled while this issue is being verified by QA.",
         };
       }
       return { disabled: false, reason: "" };
@@ -396,7 +396,7 @@ export default function TestCaseAccordion() {
     ? "No Results Found"
     : isQA
       ? "No Test Results Available"
-      : "No Tasks Assigned";
+      : "No Issues Assigned";
   // Deskripsi empty state berdasarkan kondisi
   const emptyDescription = isSearchEmpty
     ? `We couldn't find any test results matching “${searchTerm}”.`
@@ -658,7 +658,7 @@ export default function TestCaseAccordion() {
                     <th className="px-6 py-3 text-center text-medium text-gray-600">Code Test Case</th>
                     <th className="px-6 py-3 text-center text-medium text-gray-600">Test Name</th>
                     <th className="px-6 py-3 text-center text-medium text-gray-600">Status</th>
-                    <th className="px-6 py-3 text-center text-medium text-gray-600">Task Status</th>
+                    <th className="px-6 py-3 text-center text-medium text-gray-600">Issue Status</th>
                     <th className="px-6 py-3 text-center text-medium text-gray-600">Duration</th>
                     <th className="px-6 py-3 text-center text-medium text-gray-600">Action</th>
                   </tr>
@@ -667,7 +667,7 @@ export default function TestCaseAccordion() {
                 {/* Body tabel: list testcase (sudah terfilter) */}
                 <tbody className="divide-y divide-gray-200">
                   {filterTestCases(suite.testCases).map((tc, idx) => {
-                    // Ambil kebijakan rerun berdasarkan task status & role
+                    // Ambil kebijakan rerun berdasarkan issue status & role
                     const rerunPolicy = getRerunPolicy(tc.taskStatus, user?.role);
 
                     // Disable rerun jika sedang rerunning ATAU policy menyatakan disabled
@@ -696,7 +696,7 @@ export default function TestCaseAccordion() {
                           </span>
                         </td>
 
-                        {/* Task status hanya ditampilkan jika testcase tidak PASSED */}
+                        {/* issue status hanya ditampilkan jika testcase tidak PASSED */}
                         <td className="px-6 py-4 text-center">
                           {tc.status !== "PASSED" && (
                             <span className={`inline-block px-6 py-0.5 rounded-full text-sm font-medium ${getTaskStatusClass(tc.taskStatus)}`}>

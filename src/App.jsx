@@ -46,7 +46,7 @@ export default function App() {
 
           {/* Task Management → semua role */}
           <Route
-            path="/task-management"
+            path="/issues"
             element={<TaskManagement />}
           />
 
