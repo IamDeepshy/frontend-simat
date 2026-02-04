@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiFetch } from "../utils/apifetch";
 
 export function useRerunTest() {
   const [isRerunning, setIsRerunning] = useState(false);
@@ -33,7 +34,7 @@ export function useRerunTest() {
       }
 
       // trigger rerun ke backend (jenkins proxy)
-      const res = await fetch("http://localhost:3000/api/jenkins/rerun/spec", {
+      const res = await apiFetch("/api/jenkins/rerun/spec", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // session/cookie auth

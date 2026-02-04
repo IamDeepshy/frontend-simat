@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { apiFetch } from "../utils/apifetch";
 
 export default function EditProfile() {
     const navigate = useNavigate(); // redirect page
@@ -70,7 +71,7 @@ export default function EditProfile() {
 
       setSaving(true);
       try {
-        const res = await fetch("http://localhost:3000/auth/edit-profile", {
+        const res = await apiFetch("/auth/edit-profile", {
           method: "PUT",
           credentials: "include",
           headers: { "Content-Type": "application/json" },

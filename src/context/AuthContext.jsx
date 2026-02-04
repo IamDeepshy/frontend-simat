@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { apiFetch } from "../utils/apifetch";
 
 const AuthContext = createContext(null);
 
@@ -8,7 +9,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchMe = async () => {
     try {
-      const res = await fetch("http://localhost:3000/auth/me", {
+      const res = await apiFetch("/auth/me", {
         credentials: "include",
       });
 
@@ -28,7 +29,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    const res = await fetch("http://localhost:3000/auth/logout", {
+    const res = await apiFetch("/auth/logout", {
       method: "POST",
       credentials: "include",
     });

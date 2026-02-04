@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useRerunTest } from '../context/useRerunTest';
 import RerunLoadingModal from '../components/RerunLoadingModal';
 import Swal from 'sweetalert2';
+import { apiFetch } from '../utils/apifetch';
 
 const ITEMS_PER_PAGE = 5;
 // export default function DetailSuites() {
@@ -14,7 +15,7 @@ export default function TestCaseAccordion() {
   // Ambil data user login dari endpoint /auth/me (pakai cookie via credentials: "include")
   const fetchUser = async () => {
     try {
-      const res = await fetch("http://localhost:3000/auth/me", {
+      const res = await apiFetch("/auth/me", {
         credentials: "include",
       });
 
@@ -75,7 +76,7 @@ export default function TestCaseAccordion() {
   const fetchSuites = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/api/grouped-testcases", {
+      const res = await apiFetch("/api/grouped-testcases", {
         credentials: "include",
       });
 
@@ -131,7 +132,7 @@ export default function TestCaseAccordion() {
 
   // Digunakan saat rerun selesai untuk cek status testcase
   const fetchTestCaseById = async (id) => {
-    const res = await fetch("http://localhost:3000/api/grouped-testcases", {
+    const res = await apiFetch("/api/grouped-testcases", {
       credentials: "include",
     });
     const data = await res.json();
@@ -152,8 +153,8 @@ export default function TestCaseAccordion() {
 
   // Jika tidak ada defect aktif atau defect disembunyikan, kembalikan null
   const fetchActiveDefectByTestSpecId = async (testSpecId) => {
-    const res = await fetch(
-      `http://localhost:3000/api/defects/active?testSpecId=${testSpecId}`,
+    const res = await apiFetch(
+      `/api/defects/active?testSpecId=${testSpecId}`,
       { credentials: "include" }
     );
 

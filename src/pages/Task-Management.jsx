@@ -17,6 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 
 import { CSS } from '@dnd-kit/utilities';
+import { apiFetch } from '../utils/apifetch';
 
 export default function TaskManagement() {
   // ========================================================================
@@ -30,7 +31,7 @@ export default function TaskManagement() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch("http://localhost:3000/auth/me", {
+        const res = await apiFetch("/auth/me", {
           credentials: "include",
         });
 
@@ -54,7 +55,7 @@ export default function TaskManagement() {
     if (user.role === "dev") return;
 
     const fetchDevelopers = async () => {
-      const res = await fetch("http://localhost:3000/api/developers", {
+      const res = await apiFetch("/api/developers", {
         credentials: "include",
       });
       if (res.ok) setDevelopers(await res.json());
@@ -167,8 +168,8 @@ export default function TaskManagement() {
       }
 
       // fetch list
-      const res = await fetch(
-        `http://localhost:3000/api/issues?${params.toString()}`,
+      const res = await apiFetch(
+        `/api/issues?${params.toString()}`,
         { credentials: "include" }
       );
 
@@ -237,7 +238,7 @@ export default function TaskManagement() {
     const newStatus = columnToStatus(newColumnId);
     if (!newStatus) return;
 
-    const res = await fetch(`http://localhost:3000/api/issues/${taskId}/status`, {
+    const res = await apiFetch(`/api/issues/${taskId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

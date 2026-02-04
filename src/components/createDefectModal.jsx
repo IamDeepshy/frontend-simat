@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Swal from "sweetalert2";
+import { apiFetch } from '../utils/apifetch.jsx';
 
 export default function CreateDefectModal({ isOpen, onClose, testCaseName, testSpecId }) {
   // save input form di state
@@ -35,12 +36,7 @@ export default function CreateDefectModal({ isOpen, onClose, testCaseName, testS
     const fetchDevelopers = async () => {
       try {
         // request backend
-        const res = await fetch(
-          "http://localhost:3000/api/developers",
-          {
-            credentials: "include"
-          }
-        );
+        const res = await apiFetch('/api/developers', { credentials: 'include' });
         // parse json
         const data = await res.json();
         setDevelopers(Array.isArray(data) ? data : (data?.data ?? []));
@@ -176,7 +172,7 @@ export default function CreateDefectModal({ isOpen, onClose, testCaseName, testS
       };
 
       // call API backend CREATE DEFECT
-      const res = await fetch("http://localhost:3000/api/defects", {
+      const res = await apiFetch('/api/defects', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

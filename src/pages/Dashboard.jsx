@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ChartSection from "../components/Chart";
 import Header from "../components/Header";
 import { Link } from 'react-router-dom';
+import { apiFetch } from '../utils/apifetch';
 
 export default function Dashboard() {
   const [testSuites, setTestSuites] = useState([]); // data suites + testcases dari backend
@@ -41,7 +42,7 @@ export default function Dashboard() {
     const fetchSuites = async () => {
       try {
         // fetch grouped testcases dari backend
-        const res = await fetch('http://localhost:3000/api/grouped-testcases', { credentials: 'include' });
+        const res = await apiFetch('/api/grouped-testcases', { credentials: 'include' });
         const data = await res.json();
 
         // mapping data backend -> format yang dipakai UI
@@ -79,8 +80,8 @@ export default function Dashboard() {
     const fetchInProgressTask = async () => {
       try {
         // ambil issues dengan status "In Progress"
-        const res = await fetch(
-          "http://localhost:3000/api/issues?status=In%20Progress",
+        const res = await apiFetch(
+          "/api/issues?status=In%20Progress",
           { credentials: "include" }
         );
         const data = await res.json();

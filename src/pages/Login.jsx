@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Swal from "sweetalert2";
+import { apiFetch } from "../utils/apifetch";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false); // toggle show password
@@ -32,7 +33,7 @@ export default function Login() {
 
     try {
       // post auth/login
-      const res = await fetch("http://localhost:3000/auth/login", {
+      const res = await apiFetch("/auth/login", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" }, // application/json supaya backend bisa parse req.body

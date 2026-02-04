@@ -11,6 +11,7 @@ import {
   Title,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { apiFetch } from '../utils/apifetch.jsx';
 
 // =========================
 // REGISTER CHART.JS MODULES
@@ -62,7 +63,7 @@ export default function ChartSection() {
     const fetchChartData = async () => {
       try {
         // request ke backend untuk ambil grouped testcase
-        const res = await fetch('http://localhost:3000/api/grouped-testcases', { credentials: 'include' }); // include, kirim cookie token ke auth
+        const res = await apiFetch('/api/grouped-testcases',  { credentials: 'include' }); // include, kirim cookie token ke auth
         const data = await res.json();
 
         // hitung bar chart (jumlah test case per durasi)

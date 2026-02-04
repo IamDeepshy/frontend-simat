@@ -5,6 +5,8 @@ import Swal from "sweetalert2";
 import CreateDefectModal from '../components/createDefectModal';
 import { useRerunTest } from '../context/useRerunTest';
 import RerunLoadingModal from '../components/RerunLoadingModal';
+import { apiFetch } from '../utils/apifetch';
+import API from "../config/api.jsx";
 
 export default function DetailSuites() {
   // FETCH USER LOGIN Mengambil data user login untuk kontrol role-based action
@@ -13,7 +15,7 @@ export default function DetailSuites() {
   // Fetch data user dari endpoint /auth/me (menggunakan cookie via credentials)
   const fetchUser = async () => {
     try {
-      const res = await fetch("http://localhost:3000/auth/me", {
+      const res = await apiFetch("/auth/me", {
         credentials: "include",
       });
 
@@ -71,8 +73,8 @@ export default function DetailSuites() {
       setLoading(true); // mulai loading
 
       // Ambil semua suite + testcase, lalu cari testcase yang sesuai id
-      const res = await fetch(
-        "http://localhost:3000/api/grouped-testcases",
+      const res = await apiFetch(
+        "/api/grouped-testcases",
         { credentials: "include" }
       );
       const data = await res.json();
@@ -139,8 +141,8 @@ export default function DetailSuites() {
     }
 
     try {
-      const res = await fetch(
-        `http://localhost:3000/api/defects/active?testSpecId=${testCase.id}`,
+      const res = await apiFetch(
+        `/api/defects/active?testSpecId=${testCase.id}`,
         {
           credentials: "include",
         }
@@ -305,8 +307,8 @@ export default function DetailSuites() {
     if (!result.isConfirmed) return;
 
     // Hit API untuk complete issue 
-    const res = await fetch(
-      `http://localhost:3000/api/issues/${defectDetails.id}/complete`,
+    const res = await apiFetch(
+      `/api/issues/${defectDetails.id}/complete`,
       {
         method: "PATCH",
         credentials: "include",
@@ -473,7 +475,7 @@ export default function DetailSuites() {
     console.log("CALLING API: /api/issues/" + taskId + "/reopen");
 
     // Hit API reopen
-    const res = await fetch(`http://localhost:3000/api/issues/${taskId}/reopen`, {
+    const res = await apiFetch(`/api/issues/${taskId}/reopen`, {
       method: "PATCH",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -900,7 +902,7 @@ export default function DetailSuites() {
                     <h5 className="text-lg font-semibold mb-4">Failure Evidence</h5>
                     <div className="bg-gray-100 rounded-lg p-6 relative">
                       <img
-                        src={`http://localhost:3000/screenshots/${testCase.screenshotUrl}`}
+                        src={`${API}/screenshots/${testCase.screenshotUrl}`}
                         alt="Screenshot"
                         className="rounded-lg border max-w-full"
                       />
