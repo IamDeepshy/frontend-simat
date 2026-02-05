@@ -59,8 +59,8 @@ export function useRerunTest() {
       // resolve queue -> build number
       let buildNumber = null;
       while (!buildNumber) {
-        const q = await fetch(
-          `http://localhost:3000/api/jenkins/queue/resolve?queueUrl=${encodeURIComponent(queueUrl)}`,
+        const q = await apiFetch(
+          `/api/jenkins/queue/resolve?queueUrl=${encodeURIComponent(queueUrl)}`,
           { credentials: "include" }
         );
         const data = await q.json().catch(() => ({}));
@@ -72,8 +72,8 @@ export function useRerunTest() {
       // polling progress build sampai finished
       let finished = false;
       while (!finished) {
-        const p = await fetch(
-          `http://localhost:3000/api/jenkins/build/${buildNumber}/progress`,
+        const p = await apiFetch(
+          `/api/jenkins/build/${buildNumber}/progress`,
           { credentials: "include" }
         );
         const data = await p.json().catch(() => ({}));
